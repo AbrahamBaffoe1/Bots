@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>License Key Generator - Smart Stock Trader</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0e27;
+            min-height: 100vh;
+            padding: 40px 20px;
+            color: #e4e4e7;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(26, 47, 88, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(17, 24, 39, 0.5) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            color: #71717a;
+            font-size: 1em;
+            font-weight: 400;
+            letter-spacing: 0.02em;
+        }
+
+        .section {
+            background: rgba(24, 24, 27, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 35px;
+            margin-bottom: 24px;
+            transition: border-color 0.3s ease;
+        }
+
+        .section:hover {
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .section h2 {
+            color: #fafafa;
+            margin-bottom: 24px;
+            font-size: 1.4em;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #a1a1aa;
+            font-weight: 500;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(39, 39, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            font-size: 0.95em;
+            color: #fafafa;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(39, 39, 42, 0.8);
+        }
+
+        input::placeholder {
+            color: #52525b;
+        }
+
+        .btn {
+            background: #fafafa;
+            color: #0a0e27;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            letter-spacing: 0.01em;
+        }
+
+        .btn:hover {
+            background: #e4e4e7;
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fafafa;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .output {
+            background: rgba(39, 39, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 24px;
+            margin-top: 20px;
+            font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.8;
+        }
+
+        .output.success {
+            background: rgba(34, 197, 94, 0.05);
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        .license-key-display {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 16px;
+            border-radius: 6px;
+            font-size: 1.1em;
+            color: #22c55e;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            margin: 16px 0;
+            word-break: break-all;
+        }
+
+        .copy-btn {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            width: auto;
+            padding: 10px 20px;
+            font-size: 0.9em;
+            margin-top: 12px;
+        }
+
+        .copy-btn:hover {
+            background: rgba(34, 197, 94, 0.25);
+        }
+
+        .info-box {
+            background: rgba(59, 130, 246, 0.05);
+            border-left: 3px solid rgba(59, 130, 246, 0.5);
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+
+        .info-box strong {
+            color: #60a5fa;
+        }
+
+        .key-list {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 4px;
+        }
+
+        .key-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .key-list::-webkit-scrollbar-track {
+            background: rgba(39, 39, 42, 0.3);
+            border-radius: 4px;
+        }
+
+        .key-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        .key-item {
+            background: rgba(39, 39, 42, 0.4);
+            padding: 16px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+
+        .key-item:hover {
+            background: rgba(39, 39, 42, 0.6);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .key-text {
+            font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+            color: #a1a1aa;
+            font-weight: 600;
+            font-size: 0.9em;
+            letter-spacing: 0.02em;
+        }
+
+        .remove-btn {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .remove-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        code {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 12px;
+            display: block;
+            margin-top: 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.85em;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .section {
+                padding: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>License Key Generator</h1>
+            <p class="subtitle">Smart Stock Trader Pro — Version 1.0</p>
+        </header>
+
+        <div class="info-box">
+            <strong>System Overview:</strong> Generate cryptographically secure license keys for customer authorization. Each key includes validation checksums and optional hardware binding.
+        </div>
+
+        <div class="section">
+            <h2>Generate New License</h2>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="customerName">Customer Name</label>
+                    <input type="text" id="customerName" placeholder="John Doe" />
+                </div>
+
+                <div class="form-group">
+                    <label for="customerEmail">Customer Email</label>
+                    <input type="email" id="customerEmail" placeholder="john@example.com" />
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="licenseType">License Type</label>
+                    <select id="licenseType">
+                        <option value="BASIC">Basic — 1 Account, 1 Year</option>
+                        <option value="PRO">Professional — 3 Accounts, Lifetime</option>
+                        <option value="ENTERPRISE">Enterprise — Unlimited, Lifetime</option>
+                        <option value="TRIAL">Trial — 30 Days</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="expirationDays">Expiration (Days)</label>
+                    <input type="number" id="expirationDays" value="365" min="1" max="3650" />
+                </div>
+            </div>
+
+            <div class="form-group full-width">
+                <label for="accountNumber">Account Number (Optional)</label>
+                <input type="text" id="accountNumber" placeholder="Hardware lock — leave empty for any account" />
+            </div>
+
+            <button class="btn" onclick="generateKey()">Generate License Key</button>
+
+            <div id="output" class="output" style="display: none;">
+                <strong>Generated License Information</strong><br><br>
+                <div id="licenseOutput"></div>
+                <button class="btn copy-btn" onclick="copyToClipboard()">Copy License Key</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>License History</h2>
+            <div id="keyList" class="key-list">
+                <em style="color: #52525b;">No licenses generated yet</em>
+            </div>
+            <button class="btn btn-secondary" onclick="exportKeys()" style="margin-top: 15px;">Export All Keys</button>
+        </div>
+    </div>
+
+    <script>
+        let generatedKeys = [];
+
+        function generateRandomString(length) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        function generateChecksum(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36).toUpperCase().substr(0, 4);
+        }
+
+        function generateKey() {
+            const customerName = document.getElementById('customerName').value.trim();
+            const customerEmail = document.getElementById('customerEmail').value.trim();
+            const licenseType = document.getElementById('licenseType').value;
+            const accountNumber = document.getElementById('accountNumber').value.trim();
+            const expirationDays = parseInt(document.getElementById('expirationDays').value);
+
+            if (!customerName || !customerEmail) {
+                alert('Please enter customer name and email!');
+                return;
+            }
+
+            // Generate unique segments
+            const typePrefix = 'SST-' + licenseType;
+            const segment1 = generateRandomString(6);
+            const segment2 = generateRandomString(6);
+
+            // Create base key
+            const baseKey = typePrefix + '-' + segment1 + '-' + segment2;
+
+            // Generate checksum
+            const checksum = generateChecksum(customerEmail + customerName + Date.now());
+
+            // Final license key
+            const licenseKey = baseKey + '-' + checksum;
+
+            // Calculate expiration date
+            const expirationDate = new Date();
+            expirationDate.setDate(expirationDate.getDate() + expirationDays);
+            const expDateString = expirationDate.toISOString().split('T')[0].replace(/-/g, '.');
+
+            // Hardware fingerprint (if account provided)
+            let hardwareFingerprint = 'Not specified (will work on any account)';
+            if (accountNumber) {
+                hardwareFingerprint = `${accountNumber}-${customerName.replace(/\s+/g, '')}-*`;
+            }
+
+            // Display output
+            const output = `
+<div class="license-key-display">${licenseKey}</div>
+<strong>Customer:</strong> ${customerName}<br>
+<strong>Email:</strong> ${customerEmail}<br>
+<strong>Type:</strong> ${licenseType}<br>
+<strong>Expires:</strong> ${expDateString} (${expirationDays} days)<br>
+<strong>Hardware Lock:</strong> ${hardwareFingerprint}<br><br>
+
+<strong>MQL4 Configuration:</strong><br>
+<code>LicenseKey = "${licenseKey}"<br>ExpirationDate = D'${expDateString} 23:59:59'<br>${accountNumber ? `AuthorizedAccounts = "${accountNumber}"` : 'AuthorizedAccounts = "" // No restriction'}</code>
+            `;
+
+            document.getElementById('licenseOutput').innerHTML = output;
+            document.getElementById('output').style.display = 'block';
+            document.getElementById('output').classList.add('success');
+
+            // Save to history
+            const keyRecord = {
+                key: licenseKey,
+                customer: customerName,
+                email: customerEmail,
+                type: licenseType,
+                account: accountNumber || 'Any',
+                expiration: expDateString,
+                generated: new Date().toLocaleString()
+            };
+
+            generatedKeys.push(keyRecord);
+            updateKeyList();
+
+            // Save to localStorage
+            localStorage.setItem('sstLicenseKeys', JSON.stringify(generatedKeys));
+        }
+
+        function updateKeyList() {
+            const keyListDiv = document.getElementById('keyList');
+
+            if (generatedKeys.length === 0) {
+                keyListDiv.innerHTML = '<em style="color: #52525b;">No licenses generated yet</em>';
+                return;
+            }
+
+            let html = '';
+            generatedKeys.forEach((record, index) => {
+                html += `
+                    <div class="key-item">
+                        <div>
+                            <span class="key-text">${record.key}</span><br>
+                            <small style="color: #71717a;">${record.customer} • ${record.email} • ${record.type} • Exp: ${record.expiration}</small>
+                        </div>
+                        <button class="remove-btn" onclick="removeKey(${index})">Remove</button>
+                    </div>
+                `;
+            });
+
+            keyListDiv.innerHTML = html;
+        }
+
+        function removeKey(index) {
+            if (confirm('Remove this license key from history?')) {
+                generatedKeys.splice(index, 1);
+                updateKeyList();
+                localStorage.setItem('sstLicenseKeys', JSON.stringify(generatedKeys));
+            }
+        }
+
+        function copyToClipboard() {
+            const licenseKey = document.querySelector('.key-text') ||
+                              document.getElementById('licenseOutput').innerText.match(/SST-[A-Z0-9-]+/)[0];
+
+            navigator.clipboard.writeText(licenseKey).then(() => {
+                alert('License key copied to clipboard!');
+            });
+        }
+
+        function exportKeys() {
+            if (generatedKeys.length === 0) {
+                alert('No keys to export!');
+                return;
+            }
+
+            let csv = 'License Key,Customer,Email,Type,Account,Expiration,Generated\n';
+            generatedKeys.forEach(record => {
+                csv += `"${record.key}","${record.customer}","${record.email}","${record.type}","${record.account}","${record.expiration}","${record.generated}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'SST_LicenseKeys_' + new Date().toISOString().split('T')[0] + '.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Load saved keys on page load
+        window.onload = function() {
+            const saved = localStorage.getItem('sstLicenseKeys');
+            if (saved) {
+                generatedKeys = JSON.parse(saved);
+                updateKeyList();
+            }
+        };
+    </script>
+</body>
+</html>

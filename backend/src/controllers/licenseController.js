@@ -28,19 +28,30 @@ exports.getUserLicenses = async (req, res) => {
   try {
     const licenses = await License.findAll({
       where: { user_id: req.user.id },
-      include: [{
-        model: BotInstance,
-        as: 'botInstances',
-        attributes: ['id', 'instance_name', 'status', 'created_at']
-      }],
       order: [['created_at', 'DESC']]
     });
 
+    // Get bot counts for each license
+    const licensesWithCounts = await Promise.all(
+      licenses.map(async (license) => {
+        const botCount = await BotInstance.count({
+          where: { license_id: license.id }
+        });
+
+        return {
+          ...license.toJSON(),
+          used_accounts: botCount,
+          available_slots: license.max_accounts - botCount
+        };
+      })
+    );
+
     res.json({
       success: true,
-      data: { licenses }
+      data: { licenses: licensesWithCounts }
     });
   } catch (error) {
+    console.error('Get licenses error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch licenses',
@@ -71,12 +82,7 @@ exports.validateLicense = async (req, res) => {
 
     // Find license
     const license = await License.findOne({
-      where: { license_key },
-      include: [{
-        model: BotInstance,
-        as: 'botInstances',
-        attributes: ['id']
-      }]
+      where: { license_key }
     });
 
     if (!license) {
@@ -110,8 +116,10 @@ exports.validateLicense = async (req, res) => {
       });
     }
 
-    // Check if max accounts limit reached
-    const botCount = license.botInstances ? license.botInstances.length : 0;
+    // Get bot count separately to avoid association issues
+    const botCount = await BotInstance.count({
+      where: { license_id: license.id }
+    });
     const availableSlots = license.max_accounts - botCount;
 
     if (availableSlots <= 0) {

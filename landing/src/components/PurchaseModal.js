@@ -1,76 +1,68 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
 
 const PurchaseModal = ({ isOpen, onClose, plan }) => {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    accountNumber: '',
-    paymentMethod: 'card',
+    email: ''
   });
-  const [purchaseComplete, setPurchaseComplete] = useState(false);
-  const [licenseKey, setLicenseKey] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [e.target.name]: e.target.value
     });
+    setError('');
   };
 
-  const generateLicenseKey = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    const segment1 = Array.from({ length: 6 }, () =>
-      chars[Math.floor(Math.random() * chars.length)]
-    ).join('');
-    const segment2 = Array.from({ length: 6 }, () =>
-      chars[Math.floor(Math.random() * chars.length)]
-    ).join('');
-
-    let hash = 0;
-    const str = formData.email + formData.name + Date.now();
-    for (let i = 0; i < str.length; i++) {
-      hash = ((hash << 5) - hash) + str.charCodeAt(i);
-      hash = hash & hash;
-    }
-    const checksum = Math.abs(hash).toString(36).toUpperCase().substr(0, 4);
-
-    return `SST-${plan?.type || 'TRIAL'}-${segment1}-${segment2}-${checksum}`;
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
 
-    // Simulate payment processing
-    setTimeout(() => {
-      const key = generateLicenseKey();
-      setLicenseKey(key);
-      setPurchaseComplete(true);
-
-      // Store purchase data
-      const purchaseData = {
-        licenseKey: key,
-        customerName: formData.name,
-        customerEmail: formData.email,
-        plan: plan?.type,
-        price: plan?.price,
-        accountNumber: formData.accountNumber || 'Any',
-        paymentMethod: formData.paymentMethod,
-        purchaseDate: new Date().toISOString(),
+    try {
+      // Map plan names to backend plan types
+      const planTypeMap = {
+        'Trial': 'TRIAL',
+        'Basic': 'BASIC',
+        'Pro': 'PRO',
+        'Enterprise': 'ENTERPRISE'
       };
 
-      console.log('Purchase Data:', purchaseData);
-    }, 1500);
+      const planType = planTypeMap[plan.name] || 'BASIC';
+
+      // Create checkout session
+      const response = await axios.post(
+        'http://localhost:5000/api/payments/create-checkout-session',
+        {
+          plan_type: planType,
+          customer_email: formData.email
+        }
+      );
+
+      if (response.data.success) {
+        if (planType === 'TRIAL') {
+          // For trial, show license key immediately
+          alert(`Your trial license key: ${response.data.data.license_key}\n\nPlease save this key and use it to activate your bot in the dashboard.`);
+          handleClose();
+        } else {
+          // For paid plans, redirect to Stripe Checkout
+          window.location.href = response.data.data.checkout_url;
+        }
+      }
+    } catch (err) {
+      console.error('Payment error:', err);
+      setError(err.response?.data?.message || 'Failed to process payment. Please try again.');
+      setLoading(false);
+    }
   };
 
   const handleClose = () => {
-    setPurchaseComplete(false);
-    setFormData({
-      name: '',
-      email: '',
-      accountNumber: '',
-      paymentMethod: 'card',
-    });
+    setFormData({ email: '' });
+    setError('');
+    setLoading(false);
     onClose();
   };
 
@@ -97,145 +89,60 @@ const PurchaseModal = ({ isOpen, onClose, plan }) => {
               <CloseIcon />
             </button>
 
-            {!purchaseComplete ? (
-              <>
-                <h2>Complete Your Purchase</h2>
-                <p className="modal-subtitle">
-                  Plan: <strong>{plan.name}</strong> - ${plan.price}
-                </p>
+            <h2>Purchase {plan.name} Plan</h2>
+            <p className="modal-subtitle">
+              ${plan.price} - Up to {plan.accounts} MT4 Account{plan.accounts > 1 ? 's' : ''}
+            </p>
 
-                <form onSubmit={handleSubmit}>
-                  <div className="form-group">
-                    <label>Full Name</label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      placeholder="John Doe"
-                      required
-                    />
-                  </div>
+            <form onSubmit={handleSubmit}>
+              <div className="form-group">
+                <label>Email Address</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  placeholder="your@email.com"
+                  required
+                  disabled={loading}
+                />
+                <small>License key will be sent to this email</small>
+              </div>
 
-                  <div className="form-group">
-                    <label>Email Address</label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      placeholder="john@example.com"
-                      required
-                    />
-                  </div>
+              {error && (
+                <div className="error-message">
+                  {error}
+                </div>
+              )}
 
-                  <div className="form-group">
-                    <label>MT4 Account Number (Optional)</label>
-                    <input
-                      type="text"
-                      name="accountNumber"
-                      value={formData.accountNumber}
-                      onChange={handleInputChange}
-                      placeholder="Leave empty for any account"
-                    />
-                  </div>
+              <div className="plan-features">
+                <h4>What you'll get:</h4>
+                <ul>
+                  <li>License key for {plan.accounts} MT4 account{plan.accounts > 1 ? 's' : ''}</li>
+                  <li>{plan.name === 'Trial' ? '7 days' : '1 year'} access</li>
+                  <li>Automated trading 24/7</li>
+                  <li>Email support</li>
+                  {plan.name === 'Pro' && <li>Priority support</li>}
+                  {plan.name === 'Enterprise' && <li>Dedicated support</li>}
+                </ul>
+              </div>
 
-                  <div className="form-group">
-                    <label>Payment Method</label>
-                    <div className="payment-methods">
-                      <div
-                        className={`payment-method ${
-                          formData.paymentMethod === 'card' ? 'selected' : ''
-                        }`}
-                        onClick={() =>
-                          setFormData({ ...formData, paymentMethod: 'card' })
-                        }
-                      >
-                        <CreditCardIcon />
-                        <span>Card</span>
-                      </div>
-                      <div
-                        className={`payment-method ${
-                          formData.paymentMethod === 'paypal' ? 'selected' : ''
-                        }`}
-                        onClick={() =>
-                          setFormData({ ...formData, paymentMethod: 'paypal' })
-                        }
-                      >
-                        <PayPalIcon />
-                        <span>PayPal</span>
-                      </div>
-                      <div
-                        className={`payment-method ${
-                          formData.paymentMethod === 'crypto' ? 'selected' : ''
-                        }`}
-                        onClick={() =>
-                          setFormData({ ...formData, paymentMethod: 'crypto' })
-                        }
-                      >
-                        <CryptoIcon />
-                        <span>Crypto</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <motion.button
-                    type="submit"
-                    className="submit-button"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    Complete Purchase
-                  </motion.button>
-                </form>
-              </>
-            ) : (
-              <motion.div
-                className="success-content"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+              <motion.button
+                type="submit"
+                className="submit-button"
+                whileHover={{ scale: loading ? 1 : 1.02 }}
+                whileTap={{ scale: loading ? 1 : 0.98 }}
+                disabled={loading}
               >
-                <motion.div
-                  className="success-icon"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', delay: 0.2 }}
-                >
-                  <SuccessCheckIcon />
-                </motion.div>
+                {loading ? 'Processing...' : plan.name === 'Trial' ? 'Get Free Trial' : 'Continue to Payment'}
+              </motion.button>
 
-                <h2>Purchase Successful!</h2>
-                <p>Your license key has been generated. Please save it securely:</p>
-
-                <motion.div
-                  className="license-key-display"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.4 }}
-                >
-                  {licenseKey}
-                </motion.div>
-
-                <motion.button
-                  className="copy-button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(licenseKey);
-                    alert('License key copied to clipboard!');
-                  }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.6 }}
-                >
-                  Copy License Key
-                </motion.button>
-
-                <p className="success-message">
-                  A confirmation email with installation instructions has been sent to {formData.email}
-                </p>
-              </motion.div>
-            )}
+              <p className="payment-note">
+                {plan.name === 'Trial'
+                  ? 'No payment required for trial'
+                  : 'You will be redirected to secure Stripe checkout'}
+              </p>
+            </form>
           </motion.div>
         </motion.div>
       )}
@@ -246,33 +153,6 @@ const PurchaseModal = ({ isOpen, onClose, plan }) => {
 const CloseIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const CreditCardIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="3" y="6" width="18" height="12" rx="2" stroke="currentColor" strokeWidth="2"/>
-    <path d="M3 10H21" stroke="currentColor" strokeWidth="2"/>
-  </svg>
-);
-
-const PayPalIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M8 6H14C16.2091 6 18 7.79086 18 10C18 12.2091 16.2091 14 14 14H10L9 18H6L8 6Z" stroke="currentColor" strokeWidth="2"/>
-  </svg>
-);
-
-const CryptoIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/>
-    <path d="M9 10.5H14M9 13.5H14M11 8V16M13 8V16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-  </svg>
-);
-
-const SuccessCheckIcon = () => (
-  <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="40" cy="40" r="38" stroke="#22c55e" strokeWidth="4"/>
-    <path d="M25 40L35 50L55 30" stroke="#22c55e" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 

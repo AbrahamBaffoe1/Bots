@@ -399,7 +399,7 @@ const Dashboard = () => {
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/>
                     </svg>
-                    Create Your First Bot
+                    Activate Bot with License Key
                   </button>
                 </div>
               )}

@@ -12,6 +12,7 @@ const authRoutes = require('./routes/auth');
 const botRoutes = require('./routes/bots');
 const tradeRoutes = require('./routes/trades');
 const licenseRoutes = require('./routes/licenses');
+const paymentRoutes = require('./routes/payments');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -47,6 +48,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/bots', botRoutes);
 app.use('/api/trades', tradeRoutes);
 app.use('/api/licenses', licenseRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // 404 handler
 app.use((req, res) => {

@@ -440,8 +440,6 @@ body {
   margin-bottom: 20px;
   letter-spacing: -0.03em;
   color: #000000;
-  will-change: transform;
-  transform: translateY(var(--scroll-y-title));
 }
 
 .section-subtitle {
@@ -449,8 +447,6 @@ body {
   font-size: 1.3em;
   color: #52525b;
   margin-bottom: 80px;
-  will-change: transform;
-  transform: translateY(var(--scroll-y-subtitle));
 }
 
 .features-grid {

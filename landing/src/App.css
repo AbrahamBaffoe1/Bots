@@ -50,10 +50,10 @@ body {
   position: fixed;
   top: 0;
   width: 100%;
-  background: rgba(10, 14, 39, 0.95);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border-color);
-  padding: 20px 0;
+  background: transparent;
+  backdrop-filter: none;
+  border-bottom: none;
+  padding: 30px 0;
   z-index: 100;
 }
 
@@ -62,45 +62,50 @@ body {
   margin: 0 auto;
   padding: 0 40px;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
+  gap: 60px;
 }
 
 .logo {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 1.3em;
+  font-size: 1.4em;
   font-weight: 700;
+  color: var(--text-primary);
 }
 
 .nav-links {
   display: flex;
-  gap: 35px;
+  gap: 50px;
+  align-items: center;
 }
 
 .nav-links a {
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.8);
   text-decoration: none;
   font-weight: 500;
-  font-size: 0.95em;
-  transition: color 0.3s ease;
+  font-size: 1em;
+  transition: all 0.3s ease;
   position: relative;
+  padding: 8px 0;
 }
 
 .nav-links a::after {
   content: '';
   position: absolute;
-  bottom: -5px;
-  left: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
   width: 0;
   height: 2px;
-  background: var(--text-primary);
+  background: linear-gradient(90deg, #ff7f00, #ff5722);
   transition: width 0.3s ease;
 }
 
 .nav-links a:hover {
-  color: var(--text-primary);
+  color: #fafafa;
 }
 
 .nav-links a:hover::after {

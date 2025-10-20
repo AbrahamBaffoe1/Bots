@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 
@@ -8,36 +8,92 @@ const Features = () => {
     threshold: 0.1,
   });
 
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrolled = window.scrollY;
+      const featuresSection = document.querySelector('.features');
+
+      if (featuresSection) {
+        const sectionTop = featuresSection.offsetTop;
+        const sectionHeight = featuresSection.offsetHeight;
+        const scrollPosition = scrolled - sectionTop + window.innerHeight;
+
+        // Only apply parallax when section is in view
+        if (scrollPosition > 0 && scrolled < sectionTop + sectionHeight) {
+          // Background moves slower (0.3x)
+          document.documentElement.style.setProperty('--scroll-y-features', `${(scrolled - sectionTop) * 0.3}px`);
+          // Title moves slightly (0.15x)
+          document.documentElement.style.setProperty('--scroll-y-title', `${(scrolled - sectionTop) * -0.15}px`);
+          // Subtitle moves slightly more (0.2x)
+          document.documentElement.style.setProperty('--scroll-y-subtitle', `${(scrolled - sectionTop) * -0.2}px`);
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const features = [
     {
       icon: <ChartIcon />,
       title: 'Multi-Strategy Trading',
+      badge: 'Advanced',
       description: 'Advanced strategies including trend following, breakout detection, and pattern recognition with customizable parameters.',
+      stats: [
+        { value: '15+', label: 'Strategies' },
+        { value: '92%', label: 'Accuracy' }
+      ]
     },
     {
       icon: <ShieldIcon />,
       title: 'Advanced Risk Management',
+      badge: 'Protected',
       description: 'Dynamic position sizing, automatic stop-loss, take-profit levels, and drawdown protection to safeguard your capital.',
+      stats: [
+        { value: '1:3', label: 'Risk/Reward' },
+        { value: '2%', label: 'Max Risk' }
+      ]
     },
     {
       icon: <AnalyticsIcon />,
       title: 'Real-Time Analytics',
+      badge: 'Live',
       description: 'Comprehensive dashboard with performance metrics, trade history, and detailed analytics to track your success.',
+      stats: [
+        { value: '24/7', label: 'Monitoring' },
+        { value: '50+', label: 'Metrics' }
+      ]
     },
     {
       icon: <ClockIcon />,
       title: 'Session Management',
+      badge: 'Smart',
       description: 'Trade during optimal market hours with intelligent session detection for London, New York, Tokyo, and Sydney markets.',
+      stats: [
+        { value: '4', label: 'Sessions' },
+        { value: '98%', label: 'Uptime' }
+      ]
     },
     {
       icon: <TargetIcon />,
       title: 'Pattern Recognition',
+      badge: 'AI-Powered',
       description: 'Automatic detection of chart patterns, support/resistance levels, and market structure for precise entry points.',
+      stats: [
+        { value: '20+', label: 'Patterns' },
+        { value: '85%', label: 'Success' }
+      ]
     },
     {
       icon: <LockIcon />,
       title: 'Secure Licensing',
+      badge: 'Encrypted',
       description: 'Hardware-locked license keys ensure your investment is protected with optional account binding.',
+      stats: [
+        { value: '256-bit', label: 'Encryption' },
+        { value: '100%', label: 'Secure' }
+      ]
     },
   ];
 
@@ -49,7 +105,7 @@ const Features = () => {
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6 }}
         >
-          <h2 className="section-title gradient-text">Powerful Features</h2>
+          <h2 className="section-title">Powerful Features</h2>
           <p className="section-subtitle">Everything you need for professional algorithmic trading</p>
         </motion.div>
 
@@ -61,17 +117,43 @@ const Features = () => {
               initial={{ opacity: 0, y: 50 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, delay: index * 0.1 }}
-              whileHover={{ y: -10, transition: { duration: 0.2 } }}
             >
-              <motion.div
-                className="feature-icon"
-                whileHover={{ scale: 1.1, rotate: 5 }}
-                transition={{ duration: 0.3 }}
-              >
-                {feature.icon}
-              </motion.div>
-              <h3>{feature.title}</h3>
-              <p>{feature.description}</p>
+              <div className="feature-card-header">
+                <motion.div
+                  className="feature-icon"
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {feature.icon}
+                </motion.div>
+                <h3>
+                  {feature.title}
+                  <span className="feature-badge">{feature.badge}</span>
+                </h3>
+              </div>
+
+              <div className="feature-card-body">
+                <p>{feature.description}</p>
+
+                <div className="feature-chart-line">
+                  <div className="chart-bar"></div>
+                  <div className="chart-bar"></div>
+                  <div className="chart-bar"></div>
+                  <div className="chart-bar"></div>
+                  <div className="chart-bar"></div>
+                  <div className="chart-bar"></div>
+                  <div className="chart-bar"></div>
+                </div>
+
+                <div className="feature-stats">
+                  {feature.stats.map((stat, i) => (
+                    <div key={i} className="feature-stat">
+                      <div className="feature-stat-value">{stat.value}</div>
+                      <div className="feature-stat-label">{stat.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </motion.div>
           ))}
         </div>

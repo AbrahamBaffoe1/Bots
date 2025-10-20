@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './Dashboard.css';
+import AddBotModal from '../components/AddBotModal';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ const Dashboard = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview'); // overview, bots, trades, logs
+  const [addBotModalOpen, setAddBotModalOpen] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -320,7 +322,7 @@ const Dashboard = () => {
             <div className="bots-section">
               <div className="section-header">
                 <h1>Bot Management</h1>
-                <button className="add-bot-btn">
+                <button className="add-bot-btn" onClick={() => setAddBotModalOpen(true)}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/>
                   </svg>
@@ -393,7 +395,7 @@ const Dashboard = () => {
                   </svg>
                   <h3>No Bots Created Yet</h3>
                   <p>Create your first bot to start automated trading</p>
-                  <button className="add-bot-btn-large">
+                  <button className="add-bot-btn-large" onClick={() => setAddBotModalOpen(true)}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/>
                     </svg>
@@ -480,6 +482,17 @@ const Dashboard = () => {
           )}
         </div>
       </div>
+
+      <AddBotModal
+        isOpen={addBotModalOpen}
+        onClose={() => setAddBotModalOpen(false)}
+        onBotAdded={(newBot) => {
+          setBots([...bots, newBot]);
+          setAddBotModalOpen(false);
+          const token = localStorage.getItem('token');
+          fetchDashboardData(token);
+        }}
+      />
     </div>
   );
 };

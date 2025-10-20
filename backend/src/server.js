@@ -11,6 +11,7 @@ const { syncDatabase } = require('./models');
 const authRoutes = require('./routes/auth');
 const botRoutes = require('./routes/bots');
 const tradeRoutes = require('./routes/trades');
+const licenseRoutes = require('./routes/licenses');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -45,6 +46,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/bots', botRoutes);
 app.use('/api/trades', tradeRoutes);
+app.use('/api/licenses', licenseRoutes);
 
 // 404 handler
 app.use((req, res) => {

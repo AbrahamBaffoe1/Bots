@@ -9,7 +9,7 @@ const License = sequelize.define('License', {
   },
   user_id: {
     type: DataTypes.UUID,
-    allowNull: false,
+    allowNull: true, // Allow null for unassigned licenses
     references: {
       model: 'users',
       key: 'id'

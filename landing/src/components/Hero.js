@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion, useTransform } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 
@@ -10,6 +10,17 @@ const Hero = ({ scrollYProgress }) => {
     triggerOnce: true,
     threshold: 0.1,
   });
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrolled = window.scrollY;
+      // Apply parallax effect to the ::before pseudo-element via CSS custom property
+      document.documentElement.style.setProperty('--scroll-y', `${scrolled * 0.5}px`);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <motion.section

@@ -13,6 +13,7 @@
   --accent-green: #22c55e;
   --accent-blue: #3b82f6;
   --border-color: rgba(255, 255, 255, 0.1);
+  --scroll-y: 0px;
 }
 
 body {
@@ -119,7 +120,7 @@ body {
 
 .hero::before {
   content: '';
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
@@ -128,8 +129,10 @@ body {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  opacity: 0.15;
+  opacity: 0.35;
   z-index: 0;
+  will-change: transform;
+  transform: translateY(var(--scroll-y));
 }
 
 .hero::after {
@@ -139,8 +142,8 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at 30% 50%, rgba(255, 127, 0, 0.1) 0%, transparent 60%),
-              linear-gradient(135deg, rgba(10, 14, 39, 0.95) 0%, rgba(10, 14, 39, 0.85) 100%);
+  background: radial-gradient(circle at 30% 50%, rgba(255, 127, 0, 0.15) 0%, transparent 60%),
+              linear-gradient(135deg, rgba(10, 14, 39, 0.7) 0%, rgba(10, 14, 39, 0.85) 100%);
   z-index: 0;
 }
 

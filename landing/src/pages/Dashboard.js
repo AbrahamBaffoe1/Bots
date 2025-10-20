@@ -44,23 +44,27 @@ const Dashboard = () => {
         axios.get('http://localhost:5000/api/trades', config)
       ]);
 
-      setBots(botsRes.data.bots || []);
-      setTrades(tradesRes.data.trades || []);
+      // Backend returns { success: true, data: { bots: [] } } or { success: true, data: { trades: [] } }
+      const botsData = botsRes.data.data?.bots || botsRes.data.bots || [];
+      const tradesData = tradesRes.data.data?.trades || tradesRes.data.trades || [];
+
+      setBots(botsData);
+      setTrades(tradesData);
 
       // Calculate stats from trades
-      if (tradesRes.data.trades && tradesRes.data.trades.length > 0) {
-        const closedTrades = tradesRes.data.trades.filter(t => t.status === 'closed');
+      if (tradesData && tradesData.length > 0) {
+        const closedTrades = tradesData.filter(t => t.status === 'closed');
         const totalProfit = closedTrades.reduce((sum, t) => sum + parseFloat(t.profit || 0), 0);
         const winningTrades = closedTrades.filter(t => parseFloat(t.profit) > 0);
         const winRate = closedTrades.length > 0 ? (winningTrades.length / closedTrades.length * 100).toFixed(1) : 0;
 
         setStats({
-          totalTrades: tradesRes.data.trades.length,
+          totalTrades: tradesData.length,
           closedTrades: closedTrades.length,
-          openTrades: tradesRes.data.trades.filter(t => t.status === 'open').length,
+          openTrades: tradesData.filter(t => t.status === 'open').length,
           totalProfit: totalProfit.toFixed(2),
           winRate: winRate,
-          activeBots: botsRes.data.bots.filter(b => b.status === 'running').length
+          activeBots: botsData.filter(b => b.status === 'running').length
         });
       } else {
         setStats({

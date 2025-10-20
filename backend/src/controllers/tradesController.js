@@ -1,6 +1,65 @@
 const { Trade, BotInstance, BotLog } = require('../models');
 const { Op } = require('sequelize');
 
+// Get all trades for current user
+exports.getAllTrades = async (req, res) => {
+  try {
+    const { status, symbol, limit = 100, offset = 0 } = req.query;
+
+    // Get all user's bots
+    const userBots = await BotInstance.findAll({
+      where: { user_id: req.user.id },
+      attributes: ['id']
+    });
+
+    const botIds = userBots.map(b => b.id);
+
+    if (botIds.length === 0) {
+      return res.json({
+        success: true,
+        data: {
+          trades: [],
+          total: 0,
+          limit: parseInt(limit),
+          offset: parseInt(offset)
+        }
+      });
+    }
+
+    const where = { bot_instance_id: { [Op.in]: botIds } };
+    if (status) where.status = status;
+    if (symbol) where.symbol = symbol;
+
+    const trades = await Trade.findAndCountAll({
+      where,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['opened_at', 'DESC']],
+      include: [{
+        model: BotInstance,
+        as: 'botInstance',
+        attributes: ['instance_name', 'broker_name']
+      }]
+    });
+
+    res.json({
+      success: true,
+      data: {
+        trades: trades.rows,
+        total: trades.count,
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch trades',
+      error: error.message
+    });
+  }
+};
+
 // Get all trades for a bot
 exports.getTrades = async (req, res) => {
   try {

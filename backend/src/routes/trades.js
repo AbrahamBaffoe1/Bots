@@ -4,6 +4,7 @@ const tradesController = require('../controllers/tradesController');
 const { auth } = require('../middleware/auth');
 
 // Trade routes
+router.get('/', auth, tradesController.getAllTrades); // Must be before /:id
 router.get('/history', auth, tradesController.getTradeHistory);
 router.get('/bot/:botId', auth, tradesController.getTrades);
 router.get('/:id', auth, tradesController.getTrade);

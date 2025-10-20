@@ -17,13 +17,20 @@ const Dashboard = () => {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
 
-    if (!token || !userData) {
+    if (!token || !userData || userData === 'undefined') {
       navigate('/');
       return;
     }
 
-    setUser(JSON.parse(userData));
-    fetchDashboardData(token);
+    try {
+      setUser(JSON.parse(userData));
+      fetchDashboardData(token);
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      navigate('/');
+    }
   }, [navigate]);
 
   const fetchDashboardData = async (token) => {
@@ -143,8 +150,10 @@ const Dashboard = () => {
         </div>
         <div className="dashboard-nav-right">
           <div className="dashboard-user">
-            <div className="user-avatar">{user?.full_name?.charAt(0).toUpperCase() || 'U'}</div>
-            <span>{user?.full_name}</span>
+            <div className="user-avatar">
+              {user?.first_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <span>{user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : user?.email}</span>
           </div>
           <button className="logout-btn" onClick={handleLogout}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -278,7 +287,7 @@ const Dashboard = () => {
                                 {trade.trade_type}
                               </span>
                             </td>
-                            <td>{trade.volume}</td>
+                            <td>{trade.lot_size || trade.volume}</td>
                             <td>${parseFloat(trade.open_price).toFixed(2)}</td>
                             <td>{trade.close_price ? `$${parseFloat(trade.close_price).toFixed(2)}` : '-'}</td>
                             <td className={parseFloat(trade.profit) >= 0 ? 'profit-positive' : 'profit-negative'}>
@@ -337,7 +346,7 @@ const Dashboard = () => {
                         </div>
                         <div className="bot-info-row">
                           <span className="label">Server:</span>
-                          <span className="value">{bot.server_name}</span>
+                          <span className="value">{bot.broker_server || 'N/A'}</span>
                         </div>
                       </div>
                       <div className="bot-card-actions">

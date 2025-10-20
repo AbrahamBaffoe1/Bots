@@ -34,14 +34,23 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
           return;
         }
 
+        // Split full_name into first_name and last_name
+        const nameParts = formData.full_name.trim().split(' ');
+        const first_name = nameParts[0] || '';
+        const last_name = nameParts.slice(1).join(' ') || nameParts[0];
+
         const response = await axios.post('http://localhost:5000/api/auth/register', {
           email: formData.email,
           password: formData.password,
-          full_name: formData.full_name
+          first_name,
+          last_name
         });
 
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        // Backend returns { success, message, data: { user, token } }
+        const { token, user } = response.data.data;
+
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
 
         // Redirect to dashboard
         window.location.href = '/dashboard';
@@ -51,8 +60,11 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
           password: formData.password
         });
 
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        // Backend returns { success, message, data: { user, token } }
+        const { token, user } = response.data.data;
+
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
 
         // Redirect to dashboard
         window.location.href = '/dashboard';

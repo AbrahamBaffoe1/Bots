@@ -70,12 +70,18 @@ const Hero = ({ scrollYProgress }) => {
         </motion.div>
 
         <motion.div
-          className="hero-visual"
+          className="hero-visual perspective-1000"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={inView ? { opacity: 1, scale: 1 } : {}}
           transition={{ duration: 1, delay: 0.8 }}
         >
-          <TradingDashboardSVG />
+          <div className="robot-image-container">
+            <TradingDashboardSVG />
+            <div className="image-overlay">
+              <h3>Advanced Trading Intelligence</h3>
+              <p>Real-time market analysis with AI-powered decision making</p>
+            </div>
+          </div>
         </motion.div>
       </div>
     </motion.section>

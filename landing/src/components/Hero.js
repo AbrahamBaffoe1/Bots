@@ -37,57 +37,59 @@ const Hero = ({ scrollYProgress }) => {
       </nav>
 
       <div className="hero-content">
-        <div className="hero-text-content">
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          >
-            <h1>
-              <span className="gradient-text">AI-Powered</span><br />
-              Trading Bot<br />
-              for MT4
-            </h1>
-          </motion.div>
+        <motion.div
+          className="hero-text-content"
+          initial={{ opacity: 0, y: 50 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.8, delay: 0.2 }}
+        >
+          <h1>
+            <span className="gradient-text">AI-Powered</span><br />
+            Trading Bot for MT4
+          </h1>
 
-          <motion.p
-            className="hero-subtitle"
-            initial={{ opacity: 0, y: 30 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8, delay: 0.4 }}
-          >
-            Experience professional algorithmic trading with advanced strategies, intelligent risk management, and real-time performance analytics.
-          </motion.p>
+          <p className="hero-subtitle">
+            Experience professional algorithmic trading with advanced strategies, intelligent risk management, and real-time performance analytics powered by cutting-edge AI.
+          </p>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={inView ? { opacity: 1, scale: 1 } : {}}
-            transition={{ duration: 0.6, delay: 0.6 }}
-          >
-            <a href="#pricing" className="cta-button">
-              <span>Get Started Now</span>
-              <ArrowIcon />
-            </a>
-          </motion.div>
-        </div>
+          <a href="#pricing" className="cta-button">
+            <span>Get Started Now</span>
+            <ArrowIcon />
+          </a>
+        </motion.div>
 
         <motion.div
-          className="hero-visual"
-          initial={{ opacity: 0, x: 100 }}
-          animate={inView ? { opacity: 1, x: 0 } : {}}
-          transition={{ duration: 0.8, delay: 0.4 }}
+          className="hero-stats"
+          initial={{ opacity: 0, y: 50 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.8, delay: 0.5 }}
         >
-          <div className="robot-image-container">
-            <img
-              src="/robot.jpg"
-              alt="Smart Trading Bot - AI Powered"
-              className="hero-image"
-            />
-            <div className="image-overlay">
-              <h3>Next-Gen Trading Intelligence</h3>
-              <p>Powered by advanced machine learning algorithms</p>
-            </div>
-          </div>
+          <motion.div
+            className="stat-card"
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="stat-number">73.4%</div>
+            <div className="stat-label">Win Rate</div>
+          </motion.div>
+
+          <motion.div
+            className="stat-card"
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="stat-number">1,247</div>
+            <div className="stat-label">Total Trades</div>
+          </motion.div>
+
+          <motion.div
+            className="stat-card"
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="stat-number">+$45K</div>
+            <div className="stat-label">Profit Generated</div>
+          </motion.div>
         </motion.div>
       </div>
     </motion.section>

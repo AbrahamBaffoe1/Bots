@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { motion, useTransform } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 
-const Hero = ({ scrollYProgress }) => {
+const Hero = ({ scrollYProgress, onLoginClick }) => {
   const y = useTransform(scrollYProgress, [0, 1], ['0%', '50%']);
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
 
@@ -43,6 +43,12 @@ const Hero = ({ scrollYProgress }) => {
             <a href="#features">Features</a>
             <a href="#pricing">Pricing</a>
             <a href="#installation">Installation</a>
+            <button className="nav-login-btn" onClick={() => onLoginClick('login')}>
+              Login
+            </button>
+            <button className="nav-signup-btn" onClick={() => onLoginClick('signup')}>
+              Sign Up
+            </button>
           </div>
         </motion.div>
       </nav>

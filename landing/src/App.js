@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useScroll } from 'framer-motion';
 import './App.css';
 import Hero from './components/Hero';
@@ -6,37 +7,20 @@ import Features from './components/Features';
 import Pricing from './components/Pricing';
 import Installation from './components/Installation';
 import PurchaseModal from './components/PurchaseModal';
+import AuthModal from './components/AuthModal';
 import ParticleBackground from './components/ParticleBackground';
+import Dashboard from './pages/Dashboard';
 
-function App() {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState(null);
+function LandingPage({ openPurchaseModal, handleLoginClick }) {
   const { scrollYProgress } = useScroll();
 
-  const openPurchaseModal = (plan) => {
-    setSelectedPlan(plan);
-    setModalOpen(true);
-  };
-
-  const closePurchaseModal = () => {
-    setModalOpen(false);
-    setSelectedPlan(null);
-  };
-
   return (
-    <div className="App">
+    <>
       <ParticleBackground />
-
-      <Hero scrollYProgress={scrollYProgress} />
+      <Hero scrollYProgress={scrollYProgress} onLoginClick={handleLoginClick} />
       <Features />
       <Pricing onPurchase={openPurchaseModal} />
       <Installation />
-
-      <PurchaseModal
-        isOpen={modalOpen}
-        onClose={closePurchaseModal}
-        plan={selectedPlan}
-      />
 
       <footer className="footer">
         <div className="footer-content">
@@ -145,7 +129,64 @@ function App() {
           </div>
         </div>
       </footer>
-    </div>
+    </>
+  );
+}
+
+function App() {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState('login'); // 'login' or 'signup'
+
+  const openPurchaseModal = (plan) => {
+    setSelectedPlan(plan);
+    setModalOpen(true);
+  };
+
+  const closePurchaseModal = () => {
+    setModalOpen(false);
+    setSelectedPlan(null);
+  };
+
+  const handleLoginClick = (mode) => {
+    setAuthMode(mode);
+    setAuthModalOpen(true);
+  };
+
+  const closeAuthModal = () => {
+    setAuthModalOpen(false);
+  };
+
+  return (
+    <Router>
+      <div className="App">
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <>
+                <LandingPage
+                  openPurchaseModal={openPurchaseModal}
+                  handleLoginClick={handleLoginClick}
+                />
+                <PurchaseModal
+                  isOpen={modalOpen}
+                  onClose={closePurchaseModal}
+                  plan={selectedPlan}
+                />
+                <AuthModal
+                  isOpen={authModalOpen}
+                  onClose={closeAuthModal}
+                  initialMode={authMode}
+                />
+              </>
+            }
+          />
+          <Route path="/dashboard" element={<Dashboard />} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 

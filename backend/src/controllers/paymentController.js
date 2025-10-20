@@ -210,7 +210,14 @@ exports.handlePaymentSuccess = async (req, res) => {
       hardware_id: session_id // Store session ID to prevent duplicate licenses
     });
 
-    // TODO: Send email with license key to customer_email
+    // Send email with license key to customer
+    try {
+      await emailService.sendLicenseKeyEmail(session.customer_email, licenseKey, plan_type);
+      console.log(`License email sent to ${session.customer_email}`);
+    } catch (emailError) {
+      console.error('Failed to send license email:', emailError);
+      // Don't fail the payment if email fails
+    }
 
     res.json({
       success: true,

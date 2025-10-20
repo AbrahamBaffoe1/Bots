@@ -44,8 +44,12 @@ const PurchaseModal = ({ isOpen, onClose, plan }) => {
 
       if (response.data.success) {
         if (planType === 'TRIAL') {
-          // For trial, show license key immediately
-          alert(`Your trial license key: ${response.data.data.license_key}\n\nPlease save this key and use it to activate your bot in the dashboard.`);
+          // For trial, show success message
+          const message = response.data.data.is_new_user
+            ? `🎉 Account Created Successfully!\n\nYour login credentials and license key have been sent to:\n${formData.email}\n\nPlease check your email inbox (and spam folder) for your password and license key.\n\nYou can now login to your dashboard!`
+            : `✅ Trial License Generated!\n\nYour license key: ${response.data.data.license_key}\n\nPlease save this key and use it to activate your bot in the dashboard.`;
+
+          alert(message);
           handleClose();
         } else {
           // For paid plans, redirect to Stripe Checkout

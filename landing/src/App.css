@@ -58,13 +58,13 @@ body {
 }
 
 .nav-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 0 40px;
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  gap: 60px;
+  position: relative;
 }
 
 .logo {
@@ -80,6 +80,9 @@ body {
   display: flex;
   gap: 50px;
   align-items: center;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .nav-links a {

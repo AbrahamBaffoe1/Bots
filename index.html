@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Stock Trader - Professional Trading Bot for MT4</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0e27;
+            color: #e4e4e7;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(10, 14, 39, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px 0;
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: #a1a1aa;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #fafafa;
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 150px 40px 100px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 50% 30%, rgba(26, 47, 88, 0.4) 0%, transparent 60%),
+                radial-gradient(circle at 80% 80%, rgba(17, 24, 39, 0.5) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .hero-content {
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero h1 {
+            font-size: 4em;
+            font-weight: 800;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+        }
+
+        .hero p {
+            font-size: 1.3em;
+            color: #a1a1aa;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .cta-primary {
+            background: #fafafa;
+            color: #0a0e27;
+            padding: 16px 40px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .cta-primary:hover {
+            background: #e4e4e7;
+            transform: translateY(-2px);
+        }
+
+        /* Features Section */
+        .features {
+            padding: 100px 40px;
+            background: rgba(24, 24, 27, 0.3);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 60px;
+            background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .feature-card {
+            background: rgba(24, 24, 27, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 35px;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+
+        .feature-card h3 {
+            font-size: 1.3em;
+            margin-bottom: 12px;
+            color: #fafafa;
+        }
+
+        .feature-card p {
+            color: #a1a1aa;
+            line-height: 1.7;
+        }
+
+        /* Pricing Section */
+        .pricing {
+            padding: 100px 40px;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .pricing-card {
+            background: rgba(24, 24, 27, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .pricing-card.featured {
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .pricing-card:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-5px);
+        }
+
+        .pricing-card.featured:hover {
+            transform: scale(1.05) translateY(-5px);
+        }
+
+        .popular-badge {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fafafa;
+            color: #0a0e27;
+            padding: 6px 20px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .plan-name {
+            font-size: 1.5em;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #fafafa;
+        }
+
+        .plan-price {
+            font-size: 3em;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .plan-duration {
+            color: #71717a;
+            margin-bottom: 30px;
+            font-size: 0.95em;
+        }
+
+        .plan-features {
+            list-style: none;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .plan-features li {
+            padding: 12px 0;
+            color: #a1a1aa;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .plan-features li:last-child {
+            border-bottom: none;
+        }
+
+        .plan-features li::before {
+            content: '✓';
+            color: #22c55e;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .buy-btn {
+            background: #fafafa;
+            color: #0a0e27;
+            padding: 14px 35px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .buy-btn:hover {
+            background: #e4e4e7;
+            transform: translateY(-2px);
+        }
+
+        /* Installation Section */
+        .installation {
+            padding: 100px 40px;
+            background: rgba(24, 24, 27, 0.3);
+        }
+
+        .installation-steps {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .step {
+            background: rgba(24, 24, 27, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2em;
+            flex-shrink: 0;
+        }
+
+        .step-content h3 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: #fafafa;
+        }
+
+        .step-content p {
+            color: #a1a1aa;
+            line-height: 1.7;
+        }
+
+        .step-content code {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #22c55e;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: rgba(24, 24, 27, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 50px;
+            max-width: 600px;
+            width: 90%;
+            position: relative;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: #a1a1aa;
+            font-size: 2em;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .close-modal:hover {
+            color: #fafafa;
+        }
+
+        .modal h2 {
+            font-size: 2em;
+            margin-bottom: 20px;
+            color: #fafafa;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #a1a1aa;
+            font-weight: 500;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(39, 39, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            font-size: 0.95em;
+            color: #fafafa;
+            font-family: inherit;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(39, 39, 42, 0.8);
+        }
+
+        .payment-methods {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .payment-method {
+            background: rgba(39, 39, 42, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .payment-method:hover {
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .payment-method.selected {
+            border-color: #22c55e;
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .success-message {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .success-message.active {
+            display: block;
+        }
+
+        .license-key-box {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            color: #22c55e;
+            font-size: 1.1em;
+            text-align: center;
+            letter-spacing: 0.05em;
+        }
+
+        /* Footer */
+        footer {
+            padding: 60px 40px 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            color: #71717a;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 2.5em;
+            }
+
+            .hero p {
+                font-size: 1.1em;
+            }
+
+            .pricing-card.featured {
+                transform: scale(1);
+            }
+
+            .payment-methods {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="nav-container">
+            <div class="logo">Smart Stock Trader</div>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+                <li><a href="#installation">Installation</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Professional Trading Bot for MT4</h1>
+            <p>Advanced algorithmic trading with multi-strategy support, risk management, and real-time analytics. Trade smarter, not harder.</p>
+            <a href="#pricing" class="cta-primary">Get Started Now</a>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <h2 class="section-title">Powerful Features</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Multi-Strategy Trading</h3>
+                    <p>Advanced strategies including trend following, breakout detection, and pattern recognition with customizable parameters.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3>Advanced Risk Management</h3>
+                    <p>Dynamic position sizing, automatic stop-loss, take-profit levels, and drawdown protection to safeguard your capital.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📈</div>
+                    <h3>Real-Time Analytics</h3>
+                    <p>Comprehensive dashboard with performance metrics, trade history, and detailed analytics to track your success.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Session Management</h3>
+                    <p>Trade during optimal market hours with intelligent session detection for London, New York, Tokyo, and Sydney markets.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Pattern Recognition</h3>
+                    <p>Automatic detection of chart patterns, support/resistance levels, and market structure for precise entry points.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Secure Licensing</h3>
+                    <p>Hardware-locked license keys ensure your investment is protected with optional account binding.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="pricing" id="pricing">
+        <div class="container">
+            <h2 class="section-title">Choose Your Plan</h2>
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <div class="plan-name">Trial</div>
+                    <div class="plan-price">$29</div>
+                    <div class="plan-duration">30 Days Access</div>
+                    <ul class="plan-features">
+                        <li>1 MT4 Account</li>
+                        <li>All Trading Strategies</li>
+                        <li>Risk Management Tools</li>
+                        <li>Email Support</li>
+                        <li>30-Day Access</li>
+                    </ul>
+                    <button class="buy-btn" onclick="openPurchaseModal('TRIAL', 29)">Start Trial</button>
+                </div>
+
+                <div class="pricing-card">
+                    <div class="plan-name">Basic</div>
+                    <div class="plan-price">$149</div>
+                    <div class="plan-duration">1 Year License</div>
+                    <ul class="plan-features">
+                        <li>1 MT4 Account</li>
+                        <li>All Trading Strategies</li>
+                        <li>Advanced Risk Management</li>
+                        <li>Real-Time Dashboard</li>
+                        <li>Priority Email Support</li>
+                        <li>Free Updates for 1 Year</li>
+                    </ul>
+                    <button class="buy-btn" onclick="openPurchaseModal('BASIC', 149)">Purchase Basic</button>
+                </div>
+
+                <div class="pricing-card featured">
+                    <div class="popular-badge">Most Popular</div>
+                    <div class="plan-name">Professional</div>
+                    <div class="plan-price">$399</div>
+                    <div class="plan-duration">Lifetime License</div>
+                    <ul class="plan-features">
+                        <li>3 MT4 Accounts</li>
+                        <li>All Trading Strategies</li>
+                        <li>Advanced Risk Management</li>
+                        <li>Real-Time Dashboard</li>
+                        <li>Priority Support</li>
+                        <li>Lifetime Free Updates</li>
+                        <li>Custom Strategy Support</li>
+                    </ul>
+                    <button class="buy-btn" onclick="openPurchaseModal('PRO', 399)">Purchase Pro</button>
+                </div>
+
+                <div class="pricing-card">
+                    <div class="plan-name">Enterprise</div>
+                    <div class="plan-price">$999</div>
+                    <div class="plan-duration">Lifetime Unlimited</div>
+                    <ul class="plan-features">
+                        <li>Unlimited MT4 Accounts</li>
+                        <li>All Trading Strategies</li>
+                        <li>Advanced Risk Management</li>
+                        <li>Real-Time Dashboard</li>
+                        <li>24/7 Priority Support</li>
+                        <li>Lifetime Free Updates</li>
+                        <li>Custom Strategy Development</li>
+                        <li>White-Label Options</li>
+                    </ul>
+                    <button class="buy-btn" onclick="openPurchaseModal('ENTERPRISE', 999)">Purchase Enterprise</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation Section -->
+    <section class="installation" id="installation">
+        <div class="container">
+            <h2 class="section-title">Easy Installation</h2>
+            <div class="installation-steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Download the Bot Files</h3>
+                        <p>After purchase, you'll receive a download link for the EA files via email. Extract the ZIP file to access <code>SmartStockTrader.mq4</code> and all required libraries.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Install to MT4</h3>
+                        <p>Copy all files to your MT4 directory:<br>
+                        - Copy <code>SmartStockTrader.mq4</code> to <code>MQL4/Experts/</code><br>
+                        - Copy all <code>.mqh</code> files to <code>MQL4/Include/</code></p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>Configure License Key</h3>
+                        <p>Open the EA settings in MT4, navigate to the "License" tab, and paste your license key received via email. The bot will automatically validate your license.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h3>Start Trading</h3>
+                        <p>Attach the EA to your preferred chart, configure your risk settings, and let Smart Stock Trader handle the rest. Monitor performance through the built-in dashboard.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Purchase Modal -->
+    <div id="purchaseModal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closePurchaseModal()">&times;</button>
+            <h2>Complete Your Purchase</h2>
+            <p style="color: #a1a1aa; margin-bottom: 30px;">Plan: <span id="modalPlanName" style="color: #fafafa; font-weight: 600;"></span> - $<span id="modalPrice"></span></p>
+
+            <form id="purchaseForm" onsubmit="processPurchase(event)">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="customerName" required placeholder="John Doe">
+                </div>
+
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="customerEmail" required placeholder="john@example.com">
+                </div>
+
+                <div class="form-group">
+                    <label>MT4 Account Number (Optional)</label>
+                    <input type="text" id="accountNumber" placeholder="Leave empty for any account">
+                </div>
+
+                <div class="form-group">
+                    <label>Payment Method</label>
+                    <div class="payment-methods">
+                        <div class="payment-method selected" onclick="selectPayment(this, 'card')">
+                            <div>Credit Card</div>
+                        </div>
+                        <div class="payment-method" onclick="selectPayment(this, 'paypal')">
+                            <div>PayPal</div>
+                        </div>
+                        <div class="payment-method" onclick="selectPayment(this, 'crypto')">
+                            <div>Crypto</div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="paymentMethod" value="card">
+                </div>
+
+                <button type="submit" class="cta-primary" style="width: 100%;">Complete Purchase</button>
+            </form>
+
+            <div id="successMessage" class="success-message">
+                <h3 style="color: #22c55e; margin-bottom: 15px;">Purchase Successful!</h3>
+                <p style="color: #a1a1aa; margin-bottom: 15px;">Your license key has been generated. Please save it securely:</p>
+                <div class="license-key-box" id="generatedLicenseKey"></div>
+                <p style="color: #a1a1aa; font-size: 0.9em;">A confirmation email with installation instructions has been sent to your email address.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2025 Smart Stock Trader. All rights reserved.</p>
+        <p style="margin-top: 10px; font-size: 0.9em;">Professional trading involves risk. Past performance does not guarantee future results.</p>
+    </footer>
+
+    <script>
+        let selectedPlan = '';
+        let selectedPrice = 0;
+
+        function openPurchaseModal(plan, price) {
+            selectedPlan = plan;
+            selectedPrice = price;
+            document.getElementById('modalPlanName').textContent = plan;
+            document.getElementById('modalPrice').textContent = price;
+            document.getElementById('purchaseModal').classList.add('active');
+            document.getElementById('successMessage').classList.remove('active');
+            document.getElementById('purchaseForm').style.display = 'block';
+        }
+
+        function closePurchaseModal() {
+            document.getElementById('purchaseModal').classList.remove('active');
+            document.getElementById('purchaseForm').reset();
+        }
+
+        function selectPayment(element, method) {
+            document.querySelectorAll('.payment-method').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            document.getElementById('paymentMethod').value = method;
+        }
+
+        function generateLicenseKey(email, name, plan) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            const segment1 = Array.from({length: 6}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+            const segment2 = Array.from({length: 6}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+
+            let hash = 0;
+            const str = email + name + Date.now();
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash = hash & hash;
+            }
+            const checksum = Math.abs(hash).toString(36).toUpperCase().substr(0, 4);
+
+            return `SST-${plan}-${segment1}-${segment2}-${checksum}`;
+        }
+
+        function processPurchase(event) {
+            event.preventDefault();
+
+            const name = document.getElementById('customerName').value;
+            const email = document.getElementById('customerEmail').value;
+            const accountNumber = document.getElementById('accountNumber').value;
+            const paymentMethod = document.getElementById('paymentMethod').value;
+
+            // Simulate payment processing
+            setTimeout(() => {
+                // Generate license key
+                const licenseKey = generateLicenseKey(email, name, selectedPlan);
+
+                // Show success message
+                document.getElementById('purchaseForm').style.display = 'none';
+                document.getElementById('generatedLicenseKey').textContent = licenseKey;
+                document.getElementById('successMessage').classList.add('active');
+
+                // Store purchase data (in production, this would be sent to your backend)
+                const purchaseData = {
+                    licenseKey: licenseKey,
+                    customerName: name,
+                    customerEmail: email,
+                    plan: selectedPlan,
+                    price: selectedPrice,
+                    accountNumber: accountNumber || 'Any',
+                    paymentMethod: paymentMethod,
+                    purchaseDate: new Date().toISOString()
+                };
+
+                console.log('Purchase Data:', purchaseData);
+
+                // In production, send this to your backend:
+                // fetch('/api/purchase', {
+                //     method: 'POST',
+                //     headers: {'Content-Type': 'application/json'},
+                //     body: JSON.stringify(purchaseData)
+                // });
+
+            }, 1500);
+        }
+
+        // Smooth scrolling for navigation
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

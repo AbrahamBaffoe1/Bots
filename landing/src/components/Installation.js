@@ -50,63 +50,120 @@ const Installation = () => {
           <p className="section-subtitle">Get started in minutes with our simple setup process</p>
         </motion.div>
 
-        <div className="installation-timeline">
-          {steps.map((step, index) => (
-            <motion.div
-              key={index}
-              className="step-container"
-              initial={{ opacity: 0, x: index % 2 === 0 ? -50 : 50 }}
-              animate={inView ? { opacity: 1, x: 0 } : {}}
-              transition={{ duration: 0.6, delay: index * 0.2 }}
-            >
+        <div className="installation-grid">
+          <div className="installation-steps">
+            {steps.map((step, index) => (
               <motion.div
-                className="step-number"
-                whileHover={{ scale: 1.2, rotate: 10 }}
-                transition={{ duration: 0.3 }}
+                key={index}
+                className="step-card"
+                initial={{ opacity: 0, y: 30 }}
+                animate={inView ? { opacity: 1, y: 0 } : {}}
+                transition={{ duration: 0.5, delay: index * 0.15 }}
+                whileHover={{ y: -5, transition: { duration: 0.3 } }}
               >
-                {step.number}
-              </motion.div>
+                <div className="step-card-header">
+                  <motion.div
+                    className="step-number-badge"
+                    whileHover={{ scale: 1.15, rotate: 5 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {step.number}
+                  </motion.div>
+                  <h3>{step.title}</h3>
+                </div>
 
-              <div className="step-content">
-                <h3>{step.title}</h3>
-                <p>{step.description}</p>
-                {step.code && (
-                  <div className="code-block">
-                    {step.code.map((line, i) => (
-                      <motion.div
-                        key={i}
-                        className="code-line"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={inView ? { opacity: 1, y: 0 } : {}}
-                        transition={{ delay: index * 0.2 + 0.5 + i * 0.1 }}
-                      >
-                        <code>{line}</code>
-                      </motion.div>
-                    ))}
+                <div className="step-card-body">
+                  <p>{step.description}</p>
+                  {step.code && (
+                    <div className="code-block">
+                      {step.code.map((line, i) => (
+                        <motion.div
+                          key={i}
+                          className="code-line"
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={inView ? { opacity: 1, x: 0 } : {}}
+                          transition={{ delay: index * 0.15 + 0.3 + i * 0.1 }}
+                        >
+                          <code>{line}</code>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {index < steps.length - 1 && (
+                  <div className="step-arrow">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                      <path d="M5 10H15M15 10L10 5M15 10L10 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
                   </div>
                 )}
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div
+            className="installation-visual-side"
+            initial={{ opacity: 0, x: 50 }}
+            animate={inView ? { opacity: 1, x: 0 } : {}}
+            transition={{ duration: 0.8, delay: 0.4 }}
+          >
+            <div className="visual-card">
+              <div className="visual-header">
+                <div className="visual-dots">
+                  <span className="dot dot-red"></span>
+                  <span className="dot dot-yellow"></span>
+                  <span className="dot dot-green"></span>
+                </div>
+                <span className="visual-title">MetaTrader 4</span>
+              </div>
+              <div className="visual-body">
+                <MT4SetupSVG />
+              </div>
+            </div>
+
+            <div className="installation-stats">
+              <div className="stat-item">
+                <div className="stat-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M2 17L12 22L22 17" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M2 12L12 17L22 12" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <div className="stat-info">
+                  <div className="stat-value">3 Minutes</div>
+                  <div className="stat-label">Setup Time</div>
+                </div>
               </div>
 
-              {index < steps.length - 1 && (
-                <motion.div
-                  className="step-connector"
-                  initial={{ scaleY: 0 }}
-                  animate={inView ? { scaleY: 1 } : {}}
-                  transition={{ duration: 0.5, delay: index * 0.2 + 0.3 }}
-                />
-              )}
-            </motion.div>
-          ))}
-        </div>
+              <div className="stat-item">
+                <div className="stat-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="#3b82f6" strokeWidth="2"/>
+                    <path d="M12 6V12L16 14" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                </div>
+                <div className="stat-info">
+                  <div className="stat-value">24/7 Support</div>
+                  <div className="stat-label">Available Anytime</div>
+                </div>
+              </div>
 
-        <motion.div
-          className="installation-visual"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={inView ? { opacity: 1, scale: 1 } : {}}
-          transition={{ duration: 0.8, delay: 0.8 }}
-        >
-          <MT4SetupSVG />
-        </motion.div>
+              <div className="stat-item">
+                <div className="stat-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="#eab308" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <div className="stat-info">
+                  <div className="stat-value">One-Click</div>
+                  <div className="stat-label">Activation</div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
       </div>
     </section>
   );

@@ -787,251 +787,485 @@ body {
 /* Installation Section */
 .installation {
   padding: 120px 40px;
-  background: linear-gradient(180deg, #0a0e27 0%, #1a1a1a 100%);
+  background: #ffffff;
   position: relative;
 }
 
-.installation-grid {
+.installation .section-title {
+  color: #000000;
+}
+
+.installation .section-subtitle {
+  color: #52525b;
+}
+
+/* Tesla-Style Installation */
+.installation-wrapper {
   display: grid;
-  grid-template-columns: 1fr 400px;
-  gap: 50px;
-  margin-top: 60px;
-  max-width: 1500px;
+  grid-template-columns: 450px 1fr;
+  gap: 60px;
+  margin-top: 80px;
+  max-width: 1400px;
   margin-left: auto;
   margin-right: auto;
 }
 
-.installation-steps {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 25px;
+.installation-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
-.step-card {
-  background: rgba(24, 24, 27, 0.6);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  padding: 30px;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+/* Tesla Step Style */
+.tesla-step {
   position: relative;
-  overflow: hidden;
+  padding: 32px 32px 32px 90px;
+  border-left: 3px solid #e4e4e7;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-.step-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #ff7f00, #ff5722);
-  opacity: 0;
-  transition: opacity 0.4s ease;
+.tesla-step:hover {
+  background: #fafafa;
+  border-left-color: #ff7f00;
 }
 
-.step-card:hover {
-  border-color: rgba(255, 127, 0, 0.3);
-  background: rgba(24, 24, 27, 0.8);
-  box-shadow: 0 15px 40px rgba(255, 127, 0, 0.15);
+.tesla-step.active {
+  background: #fafafa;
+  border-left-color: #ff7f00;
 }
 
-.step-card:hover::before {
+.tesla-step.active .tesla-step-number {
+  background: #ff7f00;
+  color: white;
+  box-shadow: 0 0 0 8px rgba(255, 127, 0, 0.1);
+}
+
+.tesla-step.active .tesla-step-indicator {
   opacity: 1;
 }
 
-.step-card-header {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  margin-bottom: 20px;
-}
-
-.step-number-badge {
-  width: 45px;
-  height: 45px;
-  background: linear-gradient(135deg, #ff7f00, #ff5722);
-  border-radius: 12px;
+.tesla-step-number {
+  position: absolute;
+  left: -22px;
+  top: 32px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: white;
+  border: 3px solid #e4e4e7;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4em;
+  font-size: 1.2em;
   font-weight: 700;
-  color: white;
-  flex-shrink: 0;
-  box-shadow: 0 8px 20px rgba(255, 127, 0, 0.3);
+  color: #71717a;
+  transition: all 0.4s ease;
+  z-index: 2;
 }
 
-.step-card-header h3 {
-  font-size: 1.25em;
-  color: var(--text-primary);
+.tesla-step:hover .tesla-step-number {
+  border-color: #ff7f00;
+  color: #ff7f00;
+  box-shadow: 0 0 0 4px rgba(255, 127, 0, 0.05);
+}
+
+.tesla-step-content h3 {
+  font-size: 1.4em;
   font-weight: 600;
-  line-height: 1.3;
+  color: #000000;
+  margin-bottom: 12px;
+  transition: color 0.3s ease;
 }
 
-.step-card-body p {
-  color: var(--text-secondary);
+.tesla-step.active .tesla-step-content h3 {
+  color: #ff7f00;
+}
+
+.tesla-step-content p {
+  font-size: 1em;
   line-height: 1.7;
-  margin-bottom: 15px;
-  font-size: 0.95em;
+  color: #71717a;
+  transition: color 0.3s ease;
 }
 
-.code-block {
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 127, 0, 0.2);
-  border-radius: 10px;
-  padding: 15px;
-  margin-top: 15px;
+.tesla-step.active .tesla-step-content p {
+  color: #52525b;
 }
 
-.code-line {
-  margin-bottom: 6px;
-}
-
-.code-line:last-child {
-  margin-bottom: 0;
-}
-
-.code-line code {
-  color: #22c55e;
-  font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
-  font-size: 0.9em;
-  line-height: 1.6;
-}
-
-.step-arrow {
+.tesla-step-indicator {
   position: absolute;
-  bottom: 15px;
-  right: 15px;
-  color: rgba(255, 127, 0, 0.4);
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff7f00;
   opacity: 0;
-  transition: all 0.3s ease;
+  transition: opacity 0.3s ease;
 }
 
-.step-card:hover .step-arrow {
-  opacity: 1;
-  transform: translateX(3px);
-}
-
-.installation-visual-side {
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
+/* Installation Simulation */
+.installation-simulation {
+  background: white;
+  border: 1px solid #e4e4e7;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   position: sticky;
   top: 100px;
   height: fit-content;
 }
 
-.visual-card {
-  background: rgba(24, 24, 27, 0.8);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-}
-
-.visual-header {
+.simulation-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 15px 20px;
-  background: rgba(0, 0, 0, 0.3);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 20px 24px;
+  background: #fafafa;
+  border-bottom: 1px solid #e4e4e7;
 }
 
-.visual-dots {
+.sim-dots {
   display: flex;
   gap: 6px;
 }
 
-.dot {
+.sim-dots span {
   width: 12px;
   height: 12px;
   border-radius: 50%;
+  background: #d4d4d8;
 }
 
-.dot-red {
+.sim-dots span:nth-child(1) {
   background: #ef4444;
 }
 
-.dot-yellow {
+.sim-dots span:nth-child(2) {
   background: #eab308;
 }
 
-.dot-green {
+.sim-dots span:nth-child(3) {
   background: #22c55e;
 }
 
-.visual-title {
-  color: var(--text-secondary);
-  font-size: 0.85em;
+.sim-title {
+  font-size: 0.95em;
+  font-weight: 500;
+  color: #52525b;
+}
+
+.simulation-body {
+  padding: 60px 40px;
+  min-height: 450px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.simulation-content {
+  width: 100%;
+}
+
+/* Simulation Progress */
+.simulation-progress {
+  padding: 20px 24px;
+  border-top: 1px solid #e4e4e7;
+  background: #fafafa;
+}
+
+.progress-bar {
+  height: 4px;
+  background: #e4e4e7;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff7f00, #ff5722);
+  border-radius: 2px;
+}
+
+.progress-text {
+  text-align: center;
+  font-size: 0.9em;
+  color: #71717a;
   font-weight: 500;
 }
 
-.visual-body {
-  padding: 20px;
+/* Simulation Styles */
+.sim-download {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  min-height: 300px;
+  gap: 30px;
 }
 
-.visual-body svg {
-  max-width: 100%;
-  height: auto;
+.download-icon svg {
+  filter: drop-shadow(0 4px 12px rgba(255, 127, 0, 0.3));
 }
 
-.installation-stats {
+.download-file {
+  text-align: center;
+  padding: 30px;
+  background: #fafafa;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 300px;
+}
+
+.file-icon {
+  font-size: 3em;
+  margin-bottom: 15px;
+}
+
+.file-name {
+  font-size: 1.1em;
+  font-weight: 600;
+  color: #000000;
+  margin-bottom: 8px;
+}
+
+.file-size {
+  font-size: 0.9em;
+  color: #71717a;
+}
+
+.download-progress {
+  height: 6px;
+  background: linear-gradient(90deg, #ff7f00, #ff5722);
+  border-radius: 3px;
+  box-shadow: 0 2px 8px rgba(255, 127, 0, 0.4);
+}
+
+.sim-folder {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.folder-structure {
   display: flex;
   flex-direction: column;
   gap: 15px;
 }
 
-.stat-item {
+.folder-item {
   display: flex;
   align-items: center;
-  gap: 15px;
-  background: rgba(24, 24, 27, 0.6);
-  backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 20px;
-  transition: all 0.3s ease;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #fafafa;
+  border-radius: 10px;
+  font-size: 1.1em;
+  font-weight: 500;
+  color: #000000;
+  position: relative;
 }
 
-.stat-item:hover {
-  border-color: rgba(255, 127, 0, 0.3);
-  background: rgba(24, 24, 27, 0.8);
-  transform: translateX(5px);
+.folder-item.nested {
+  margin-left: 40px;
 }
 
-.stat-icon {
-  width: 50px;
-  height: 50px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
+.folder-icon {
+  font-size: 1.5em;
+}
+
+.file-copy {
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #22c55e;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
 }
 
-.stat-info {
-  flex: 1;
-}
-
-.stat-value {
-  font-size: 1.1em;
+.file-copy .check {
+  color: white;
   font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 4px;
+  font-size: 1.2em;
 }
 
-.stat-label {
-  font-size: 0.85em;
-  color: var(--text-secondary);
+.success-message {
+  text-align: center;
+  padding: 20px;
+  background: rgba(34, 197, 94, 0.1);
+  border-radius: 10px;
+  color: #22c55e;
+  font-weight: 600;
+  font-size: 1.1em;
+}
+
+.sim-license {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
+}
+
+.license-window {
+  width: 100%;
+  max-width: 400px;
+  background: #fafafa;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.license-header {
+  padding: 20px;
+  background: #000000;
+  color: white;
+  font-weight: 600;
+  text-align: center;
+}
+
+.license-body {
+  padding: 30px;
+}
+
+.license-input {
+  margin-bottom: 25px;
+}
+
+.input-label {
+  font-size: 0.9em;
+  color: #71717a;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.input-field {
+  padding: 16px;
+  background: white;
+  border: 2px solid #e4e4e7;
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: 1em;
+  font-weight: 600;
+  color: #000000;
+  text-align: center;
+  letter-spacing: 2px;
+}
+
+.activate-btn {
+  width: 100%;
+  padding: 16px;
+  background: #ff7f00;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1em;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.activate-btn:hover {
+  background: #ff5722;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 127, 0, 0.4);
+}
+
+.validation-check svg {
+  filter: drop-shadow(0 4px 12px rgba(34, 197, 94, 0.3));
+}
+
+.sim-trading {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.chart-container {
+  background: #fafafa;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: #000000;
+  color: white;
+}
+
+.pair {
+  font-weight: 700;
+  font-size: 1.1em;
+}
+
+.timeframe {
+  font-size: 0.9em;
+  color: #a1a1aa;
+}
+
+.chart-body {
+  padding: 20px;
+}
+
+.bot-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+  background: white;
+  font-weight: 500;
+  color: #000000;
+}
+
+.status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #71717a;
+}
+
+.status-indicator.active {
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.trade-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+
+.trade-stats .stat {
+  background: #fafafa;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.trade-stats .stat-label {
+  font-size: 0.9em;
+  color: #71717a;
+  margin-bottom: 8px;
+}
+
+.trade-stats .stat-value {
+  font-size: 1.8em;
+  font-weight: 700;
+  color: #22c55e;
 }
 
 /* Modal */
@@ -1492,22 +1726,32 @@ body {
     margin-right: 0;
   }
 
-  .installation-grid {
+  .installation-wrapper {
     grid-template-columns: 1fr;
     gap: 40px;
   }
 
-  .installation-steps {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-
-  .installation-visual-side {
+  .installation-simulation {
     position: static;
   }
 
-  .step-arrow {
-    display: none;
+  .tesla-step {
+    padding: 24px 24px 24px 70px;
+  }
+
+  .tesla-step-number {
+    width: 36px;
+    height: 36px;
+    left: -19px;
+    font-size: 1em;
+  }
+
+  .tesla-step-content h3 {
+    font-size: 1.2em;
+  }
+
+  .tesla-step-content p {
+    font-size: 0.95em;
   }
 
   /* Mobile optimizations for hero image */

@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 
 const Installation = () => {
@@ -7,34 +7,36 @@ const Installation = () => {
     triggerOnce: true,
     threshold: 0.1,
   });
+  const [activeStep, setActiveStep] = useState(0);
 
   const steps = [
     {
       number: 1,
       title: 'Download the Bot Files',
       description: 'After purchase, you\'ll receive a download link for the EA files via email. Extract the ZIP file to access SmartStockTrader.mq4 and all required libraries.',
-      code: null,
+      icon: 'download',
+      visual: 'download'
     },
     {
       number: 2,
       title: 'Install to MT4',
-      description: 'Copy all files to your MT4 directory:',
-      code: [
-        'SmartStockTrader.mq4 → MQL4/Experts/',
-        'All .mqh files → MQL4/Include/',
-      ],
+      description: 'Copy all files to your MT4 directory: SmartStockTrader.mq4 → MQL4/Experts/ and all .mqh files → MQL4/Include/',
+      icon: 'folder',
+      visual: 'folder'
     },
     {
       number: 3,
       title: 'Configure License Key',
-      description: 'Open the EA settings in MT4, navigate to the "License" tab, and paste your license key received via email. The bot will automatically validate your license.',
-      code: null,
+      description: 'Open the EA settings in MT4, navigate to the "License" tab, and paste your license key received via email.',
+      icon: 'key',
+      visual: 'license'
     },
     {
       number: 4,
       title: 'Start Trading',
-      description: 'Attach the EA to your preferred chart, configure your risk settings, and let Smart Stock Trader handle the rest. Monitor performance through the built-in dashboard.',
-      code: null,
+      description: 'Attach the EA to your preferred chart, configure your risk settings, and let Smart Stock Trader handle the rest.',
+      icon: 'chart',
+      visual: 'trading'
     },
   ];
 
@@ -47,119 +49,74 @@ const Installation = () => {
           transition={{ duration: 0.6 }}
         >
           <h2 className="section-title gradient-text">Easy Installation</h2>
-          <p className="section-subtitle">Get started in minutes with our simple setup process</p>
+          <p className="section-subtitle">Hover over each step to see the installation process in action</p>
         </motion.div>
 
-        <div className="installation-grid">
-          <div className="installation-steps">
+        <div className="installation-wrapper">
+          <div className="installation-steps-list">
             {steps.map((step, index) => (
               <motion.div
                 key={index}
-                className="step-card"
-                initial={{ opacity: 0, y: 30 }}
-                animate={inView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.5, delay: index * 0.15 }}
-                whileHover={{ y: -5, transition: { duration: 0.3 } }}
+                className={`tesla-step ${activeStep === index ? 'active' : ''}`}
+                initial={{ opacity: 0, x: -30 }}
+                animate={inView ? { opacity: 1, x: 0 } : {}}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                onMouseEnter={() => setActiveStep(index)}
               >
-                <div className="step-card-header">
-                  <motion.div
-                    className="step-number-badge"
-                    whileHover={{ scale: 1.15, rotate: 5 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {step.number}
-                  </motion.div>
+                <div className="tesla-step-number">{step.number}</div>
+                <div className="tesla-step-content">
                   <h3>{step.title}</h3>
-                </div>
-
-                <div className="step-card-body">
                   <p>{step.description}</p>
-                  {step.code && (
-                    <div className="code-block">
-                      {step.code.map((line, i) => (
-                        <motion.div
-                          key={i}
-                          className="code-line"
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={inView ? { opacity: 1, x: 0 } : {}}
-                          transition={{ delay: index * 0.15 + 0.3 + i * 0.1 }}
-                        >
-                          <code>{line}</code>
-                        </motion.div>
-                      ))}
-                    </div>
-                  )}
                 </div>
-
-                {index < steps.length - 1 && (
-                  <div className="step-arrow">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <path d="M5 10H15M15 10L10 5M15 10L10 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-                )}
+                <div className="tesla-step-indicator"></div>
               </motion.div>
             ))}
           </div>
 
           <motion.div
-            className="installation-visual-side"
-            initial={{ opacity: 0, x: 50 }}
-            animate={inView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.8, delay: 0.4 }}
+            className="installation-simulation"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={inView ? { opacity: 1, scale: 1 } : {}}
+            transition={{ duration: 0.6, delay: 0.3 }}
           >
-            <div className="visual-card">
-              <div className="visual-header">
-                <div className="visual-dots">
-                  <span className="dot dot-red"></span>
-                  <span className="dot dot-yellow"></span>
-                  <span className="dot dot-green"></span>
-                </div>
-                <span className="visual-title">MetaTrader 4</span>
+            <div className="simulation-header">
+              <div className="sim-dots">
+                <span></span>
+                <span></span>
+                <span></span>
               </div>
-              <div className="visual-body">
-                <MT4SetupSVG />
-              </div>
+              <span className="sim-title">Installation Simulator</span>
             </div>
 
-            <div className="installation-stats">
-              <div className="stat-item">
-                <div className="stat-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M2 17L12 22L22 17" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M2 12L12 17L22 12" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-                <div className="stat-info">
-                  <div className="stat-value">3 Minutes</div>
-                  <div className="stat-label">Setup Time</div>
-                </div>
-              </div>
+            <div className="simulation-body">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeStep}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.4 }}
+                  className="simulation-content"
+                >
+                  {activeStep === 0 && <DownloadSimulation />}
+                  {activeStep === 1 && <FolderSimulation />}
+                  {activeStep === 2 && <LicenseSimulation />}
+                  {activeStep === 3 && <TradingSimulation />}
+                </motion.div>
+              </AnimatePresence>
+            </div>
 
-              <div className="stat-item">
-                <div className="stat-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="#3b82f6" strokeWidth="2"/>
-                    <path d="M12 6V12L16 14" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                </div>
-                <div className="stat-info">
-                  <div className="stat-value">24/7 Support</div>
-                  <div className="stat-label">Available Anytime</div>
-                </div>
+            <div className="simulation-progress">
+              <div className="progress-bar">
+                <motion.div
+                  className="progress-fill"
+                  initial={{ width: '0%' }}
+                  animate={{ width: `${((activeStep + 1) / steps.length) * 100}%` }}
+                  transition={{ duration: 0.5 }}
+                />
               </div>
-
-              <div className="stat-item">
-                <div className="stat-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="#eab308" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-                <div className="stat-info">
-                  <div className="stat-value">One-Click</div>
-                  <div className="stat-label">Activation</div>
-                </div>
+              <div className="progress-text">
+                Step {activeStep + 1} of {steps.length}
               </div>
             </div>
           </motion.div>
@@ -169,59 +126,181 @@ const Installation = () => {
   );
 };
 
-const MT4SetupSVG = () => (
-  <svg width="600" height="300" viewBox="0 0 600 300" fill="none" xmlns="http://www.w3.org/2000/svg">
-    {/* Terminal Window */}
-    <rect x="50" y="50" width="500" height="200" rx="12" fill="rgba(24, 24, 27, 0.8)" stroke="rgba(255, 255, 255, 0.1)" strokeWidth="1"/>
-
-    {/* Window Controls */}
-    <circle cx="70" cy="70" r="5" fill="#ef4444"/>
-    <circle cx="90" cy="70" r="5" fill="#eab308"/>
-    <circle cx="110" cy="70" r="5" fill="#22c55e"/>
-
-    {/* Title Bar */}
-    <text x="140" y="75" fill="#a1a1aa" fontSize="12" fontWeight="500">MetaTrader 4 - Expert Advisors</text>
-
-    {/* Folder Icons */}
-    <motion.g initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-      <rect x="80" y="100" width="60" height="50" rx="6" fill="rgba(161, 161, 170, 0.2)" stroke="rgba(255, 255, 255, 0.1)"/>
-      <path d="M90 110 L100 110 L105 105 L125 105 L130 110 L130 140 L90 140 Z" fill="rgba(161, 161, 170, 0.3)"/>
-      <text x="95" y="130" fill="#a1a1aa" fontSize="10">Experts</text>
-    </motion.g>
-
-    <motion.g initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-      <rect x="160" y="100" width="60" height="50" rx="6" fill="rgba(161, 161, 170, 0.2)" stroke="rgba(255, 255, 255, 0.1)"/>
-      <path d="M170 110 L180 110 L185 105 L205 105 L210 110 L210 140 L170 140 Z" fill="rgba(161, 161, 170, 0.3)"/>
-      <text x="172" y="130" fill="#a1a1aa" fontSize="10">Include</text>
-    </motion.g>
-
-    {/* File Icons */}
-    <motion.g initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 }}>
-      <rect x="260" y="105" width="100" height="40" rx="4" fill="rgba(34, 197, 94, 0.1)" stroke="#22c55e" strokeWidth="1"/>
-      <text x="270" y="128" fill="#22c55e" fontSize="11" fontWeight="600">SmartStock...</text>
-    </motion.g>
-
-    <motion.g initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7 }}>
-      <rect x="380" y="105" width="100" height="40" rx="4" fill="rgba(59, 130, 246, 0.1)" stroke="#3b82f6" strokeWidth="1"/>
-      <text x="390" y="128" fill="#3b82f6" fontSize="11" fontWeight="600">Libraries.mqh</text>
-    </motion.g>
-
-    {/* Success Checkmark */}
-    <motion.g
+// Simulation Components
+const DownloadSimulation = () => (
+  <div className="sim-download">
+    <motion.div
+      className="download-icon"
       initial={{ scale: 0 }}
-      animate={{ scale: 1 }}
-      transition={{ delay: 1, type: 'spring' }}
+      animate={{ scale: 1, rotate: [0, -10, 10, 0] }}
+      transition={{ duration: 0.6 }}
     >
-      <circle cx="500" cy="125" r="20" fill="rgba(34, 197, 94, 0.2)" stroke="#22c55e" strokeWidth="2"/>
-      <path d="M490 125 L497 132 L510 118" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-    </motion.g>
+      <svg width="80" height="80" viewBox="0 0 24 24" fill="none">
+        <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="#ff7f00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M7 10L12 15L17 10" stroke="#ff7f00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M12 15V3" stroke="#ff7f00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    </motion.div>
+    <motion.div
+      className="download-file"
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.3 }}
+    >
+      <div className="file-icon">📦</div>
+      <div className="file-name">SmartStockTrader.zip</div>
+      <div className="file-size">2.4 MB</div>
+    </motion.div>
+    <motion.div
+      className="download-progress"
+      initial={{ width: 0 }}
+      animate={{ width: '100%' }}
+      transition={{ delay: 0.6, duration: 1.5 }}
+    />
+  </div>
+);
 
-    {/* Terminal Lines */}
-    <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
-      <text x="80" y="180" fill="#22c55e" fontSize="11" fontFamily="monospace">✓ Files copied successfully</text>
-      <text x="80" y="200" fill="#a1a1aa" fontSize="11" fontFamily="monospace">Installation complete. Ready to activate.</text>
-    </motion.g>
-  </svg>
+const FolderSimulation = () => (
+  <div className="sim-folder">
+    <div className="folder-structure">
+      <motion.div className="folder-item" initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.1 }}>
+        <span className="folder-icon">📁</span> MQL4
+      </motion.div>
+      <motion.div className="folder-item nested" initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.3 }}>
+        <span className="folder-icon">📁</span> Experts
+        <motion.div className="file-copy" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.5 }}>
+          <span className="check">✓</span>
+        </motion.div>
+      </motion.div>
+      <motion.div className="folder-item nested" initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.5 }}>
+        <span className="folder-icon">📁</span> Include
+        <motion.div className="file-copy" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.7 }}>
+          <span className="check">✓</span>
+        </motion.div>
+      </motion.div>
+    </div>
+    <motion.div
+      className="success-message"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 1 }}
+    >
+      ✓ Files installed successfully
+    </motion.div>
+  </div>
+);
+
+const LicenseSimulation = () => (
+  <div className="sim-license">
+    <motion.div
+      className="license-window"
+      initial={{ scale: 0.9, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      <div className="license-header">License Activation</div>
+      <div className="license-body">
+        <motion.div
+          className="license-input"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          <div className="input-label">Enter License Key</div>
+          <motion.div
+            className="input-field"
+            initial={{ width: 0 }}
+            animate={{ width: '100%' }}
+            transition={{ delay: 0.5, duration: 1 }}
+          >
+            XXXX-XXXX-XXXX-XXXX
+          </motion.div>
+        </motion.div>
+        <motion.button
+          className="activate-btn"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.2 }}
+          whileHover={{ scale: 1.05 }}
+        >
+          Activate License
+        </motion.button>
+      </div>
+    </motion.div>
+    <motion.div
+      className="validation-check"
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ delay: 1.5, type: 'spring' }}
+    >
+      <svg width="60" height="60" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" stroke="#22c55e" strokeWidth="2"/>
+        <path d="M8 12L11 15L16 9" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    </motion.div>
+  </div>
+);
+
+const TradingSimulation = () => (
+  <div className="sim-trading">
+    <motion.div
+      className="chart-container"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      <div className="chart-header">
+        <span className="pair">EUR/USD</span>
+        <span className="timeframe">H1</span>
+      </div>
+      <div className="chart-body">
+        <svg width="100%" height="200" viewBox="0 0 400 200">
+          <motion.path
+            d="M 20 150 L 60 120 L 100 140 L 140 100 L 180 110 L 220 80 L 260 90 L 300 60 L 340 70 L 380 50"
+            stroke="#22c55e"
+            strokeWidth="3"
+            fill="none"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 2, ease: "easeInOut" }}
+          />
+          <motion.circle
+            cx="380"
+            cy="50"
+            r="6"
+            fill="#22c55e"
+            initial={{ scale: 0 }}
+            animate={{ scale: [0, 1.5, 1] }}
+            transition={{ delay: 2, duration: 0.5 }}
+          />
+        </svg>
+      </div>
+      <motion.div
+        className="bot-status"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 2.2 }}
+      >
+        <div className="status-indicator active"></div>
+        <span>Bot Active - Monitoring Market</span>
+      </motion.div>
+    </motion.div>
+    <motion.div
+      className="trade-stats"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 2.5 }}
+    >
+      <div className="stat">
+        <div className="stat-label">Win Rate</div>
+        <div className="stat-value">87%</div>
+      </div>
+      <div className="stat">
+        <div className="stat-label">Profit Today</div>
+        <div className="stat-value">+$234</div>
+      </div>
+    </motion.div>
+  </div>
 );
 
 export default Installation;

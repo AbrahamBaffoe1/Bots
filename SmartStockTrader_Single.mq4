@@ -282,6 +282,8 @@ bool IsTradingTime() {
 // RISK MANAGEMENT
 //--------------------------------------------------------------------
 bool CheckDailyLossLimit() {
+   if(g_DailyStartEquity <= 0) return false;  // Prevent division by zero
+
    double dailyPL = AccountEquity() - g_DailyStartEquity;
    double dailyPct = (dailyPL / g_DailyStartEquity) * 100.0;
 

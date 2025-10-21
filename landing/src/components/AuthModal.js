@@ -52,8 +52,12 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
 
-        // Redirect to dashboard
-        window.location.href = '/dashboard';
+        // Redirect based on user role
+        if (user.role === 'admin') {
+          window.location.href = '/admin';
+        } else {
+          window.location.href = '/dashboard';
+        }
       } else {
         const response = await axios.post('http://localhost:5000/api/auth/login', {
           email: formData.email,
@@ -66,8 +70,12 @@ const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
 
-        // Redirect to dashboard
-        window.location.href = '/dashboard';
+        // Redirect based on user role
+        if (user.role === 'admin') {
+          window.location.href = '/admin';
+        } else {
+          window.location.href = '/dashboard';
+        }
       }
     } catch (err) {
       setError(err.response?.data?.error || 'An error occurred. Please try again.');

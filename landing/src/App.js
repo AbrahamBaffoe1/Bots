@@ -10,6 +10,7 @@ import PurchaseModal from './components/PurchaseModal';
 import AuthModal from './components/AuthModal';
 import ParticleBackground from './components/ParticleBackground';
 import Dashboard from './pages/Dashboard';
+import AdminDashboard from './pages/AdminDashboard';
 
 function LandingPage({ openPurchaseModal, handleLoginClick }) {
   const { scrollYProgress } = useScroll();
@@ -184,6 +185,7 @@ function App() {
             }
           />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/admin" element={<AdminDashboard />} />
         </Routes>
       </div>
     </Router>

@@ -17,7 +17,7 @@ const BotInstance = sequelize.define('BotInstance', {
   },
   license_id: {
     type: DataTypes.UUID,
-    allowNull: false,
+    allowNull: true, // Allow null for MT4 EA registrations without dashboard
     references: {
       model: 'licenses',
       key: 'id'

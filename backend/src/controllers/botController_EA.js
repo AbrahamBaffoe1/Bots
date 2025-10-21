@@ -1,4 +1,4 @@
-const { BotInstance, Trade, BotLog } = require('../models');
+const { BotInstance, Trade, BotLog, License } = require('../models');
 const { Op } = require('sequelize');
 
 /**
@@ -34,6 +34,39 @@ exports.registerOrGetBot = async (req, res) => {
         success: false,
         message: 'account_number (or mt4_account) and broker_name are required'
       });
+    }
+
+    // If license_key is provided (from dashboard), look up the license
+    let licenseId = null;
+    if (license_key) {
+      const license = await License.findOne({
+        where: {
+          license_key: license_key.trim().toUpperCase(),
+          user_id: req.user.id,
+          status: 'active'
+        }
+      });
+
+      if (!license) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or inactive license key'
+        });
+      }
+
+      // Check if license has available slots
+      const existingBotsCount = await BotInstance.count({
+        where: { license_id: license.id }
+      });
+
+      if (existingBotsCount >= license.max_accounts) {
+        return res.status(400).json({
+          success: false,
+          message: `License has reached maximum accounts (${license.max_accounts}). Please upgrade or purchase additional licenses.`
+        });
+      }
+
+      licenseId = license.id;
     }
 
     // Check if bot already exists for this user and account
@@ -82,6 +115,7 @@ exports.registerOrGetBot = async (req, res) => {
     // Create new bot instance
     bot = await BotInstance.create({
       user_id: req.user.id,
+      license_id: licenseId, // Will be null for MT4 EA registrations (allowed), required for dashboard
       instance_name: botName || `Bot_${accountNum}`,
       mt4_account: accountNum.toString(),
       account_name: account_name || '',

@@ -45,8 +45,8 @@ extern bool    RequireLicenseKey     = true;                           // Set FA
 extern string  Stocks                = "AAPL,MSFT,GOOGL,AMZN,TSLA";  // Leave empty to use current chart symbol
 extern int     MagicNumber           = 555777;
 extern bool    EnableTrading         = true;
-extern bool    BacktestMode          = false;                        // Enable backtest features (24/7, verbose logs, no restrictions)
-extern bool    VerboseLogging        = false;                       // Detailed logs for debugging
+extern bool    BacktestMode          = true;                        // Enable backtest features (24/7, verbose logs, no restrictions)
+extern bool    VerboseLogging        = true;                       // Detailed logs for debugging
 extern double  RiskPercentPerTrade   = 1.0;
 extern double  MaxDailyLossPercent   = 5.0;
 extern bool    ShowDashboard         = true;
@@ -54,9 +54,9 @@ extern bool    SendNotifications     = false;
 
 //=== BACKEND API INTEGRATION PARAMETERS ===
 extern string  API_BaseURL           = "http://localhost:5000";     // Backend API base URL
-extern string  API_UserEmail         = "Ifrey2heavens@gmail.com";                           // User email for authentication
-extern string  API_UserPassword      = "!bv2000gee4A!";                           // User password for authentication
-extern bool    API_EnableSync        = true;                        // Master switch for API synchronization
+extern string  API_UserEmail         = "";                           // User email for authentication
+extern string  API_UserPassword      = "";                           // User password for authentication
+extern bool    API_EnableSync        = false;                        // Master switch for API synchronization
 extern bool    API_EnableTradeSync   = true;                        // Sync trades to backend
 extern bool    API_EnableHeartbeat   = true;                        // Send heartbeat signals
 extern bool    API_EnablePerfSync    = true;                        // Sync performance metrics
@@ -303,6 +303,10 @@ bool CheckSpreadFilter(string symbol) {
 
    double spread = MarketInfo(symbol, MODE_SPREAD);
    double point = MarketInfo(symbol, MODE_POINT);
+
+   // Prevent division by zero
+   if(point <= 0) point = 0.00001;
+
    double spreadPips = spread * point / (point * 10.0);
 
    if(spreadPips > MaxSpreadPips) {

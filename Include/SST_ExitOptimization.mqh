@@ -32,6 +32,8 @@ double ExitOpt_CalculateTrailingDistance(string symbol, int timeframe, bool isBu
 
    // ADVANCED: Adjust trailing based on profit level and volatility
    double point = MarketInfo(symbol, MODE_POINT);
+   if(point <= 0) point = 0.00001;  // Prevent division by zero
+
    double profitPips = MathAbs(currentPrice - entryPrice) / (point * 10.0);
    double atr = iATR(symbol, timeframe, 14, 0);
    double atrPips = atr / (point * 10.0);
@@ -70,6 +72,8 @@ bool ExitOpt_IsNearStructure(string symbol, double currentPrice, bool isBuy) {
 
    // Simplified: Check if near round numbers (psychological levels)
    double point = MarketInfo(symbol, MODE_POINT);
+   if(point <= 0) point = 0.00001;  // Prevent division by zero
+
    int digits = (int)MarketInfo(symbol, MODE_DIGITS);
 
    // Round to nearest 0.50 or 1.00 level

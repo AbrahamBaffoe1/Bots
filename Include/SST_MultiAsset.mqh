@@ -47,37 +47,37 @@ void MultiAsset_InitSectorETFs() {
    int index = 0;
 
    // Technology - XLK
-   MultiAsset_AddSectorETF("AAPL", "XLK", "Technology", index++);
-   MultiAsset_AddSectorETF("MSFT", "XLK", "Technology", index++);
-   MultiAsset_AddSectorETF("GOOGL", "XLK", "Technology", index++);
-   MultiAsset_AddSectorETF("NVDA", "XLK", "Technology", index++);
-   MultiAsset_AddSectorETF("AMD", "XLK", "Technology", index++);
+   MultiAsset_AddSectorETF("AAPL", "XLK", "Technology", index); index++;
+   MultiAsset_AddSectorETF("MSFT", "XLK", "Technology", index); index++;
+   MultiAsset_AddSectorETF("GOOGL", "XLK", "Technology", index); index++;
+   MultiAsset_AddSectorETF("NVDA", "XLK", "Technology", index); index++;
+   MultiAsset_AddSectorETF("AMD", "XLK", "Technology", index); index++;
 
    // Finance - XLF
-   MultiAsset_AddSectorETF("JPM", "XLF", "Finance", index++);
-   MultiAsset_AddSectorETF("BAC", "XLF", "Finance", index++);
-   MultiAsset_AddSectorETF("WFC", "XLF", "Finance", index++);
-   MultiAsset_AddSectorETF("GS", "XLF", "Finance", index++);
+   MultiAsset_AddSectorETF("JPM", "XLF", "Finance", index); index++;
+   MultiAsset_AddSectorETF("BAC", "XLF", "Finance", index); index++;
+   MultiAsset_AddSectorETF("WFC", "XLF", "Finance", index); index++;
+   MultiAsset_AddSectorETF("GS", "XLF", "Finance", index); index++;
 
    // Healthcare - XLV
-   MultiAsset_AddSectorETF("JNJ", "XLV", "Healthcare", index++);
-   MultiAsset_AddSectorETF("UNH", "XLV", "Healthcare", index++);
-   MultiAsset_AddSectorETF("PFE", "XLV", "Healthcare", index++);
+   MultiAsset_AddSectorETF("JNJ", "XLV", "Healthcare", index); index++;
+   MultiAsset_AddSectorETF("UNH", "XLV", "Healthcare", index); index++;
+   MultiAsset_AddSectorETF("PFE", "XLV", "Healthcare", index); index++;
 
    // Energy - XLE
-   MultiAsset_AddSectorETF("XOM", "XLE", "Energy", index++);
-   MultiAsset_AddSectorETF("CVX", "XLE", "Energy", index++);
+   MultiAsset_AddSectorETF("XOM", "XLE", "Energy", index); index++;
+   MultiAsset_AddSectorETF("CVX", "XLE", "Energy", index); index++;
 
    // Consumer - XLY
-   MultiAsset_AddSectorETF("AMZN", "XLY", "Consumer", index++);
-   MultiAsset_AddSectorETF("TSLA", "XLY", "Consumer", index++);
-   MultiAsset_AddSectorETF("HD", "XLY", "Consumer", index++);
+   MultiAsset_AddSectorETF("AMZN", "XLY", "Consumer", index); index++;
+   MultiAsset_AddSectorETF("TSLA", "XLY", "Consumer", index); index++;
+   MultiAsset_AddSectorETF("HD", "XLY", "Consumer", index); index++;
 
    ArrayResize(g_SectorETFs, index);
    Print("📊 Sector ETF mapping initialized: ", index, " symbols");
 }
 
-void MultiAsset_AddSectorETF(string symbol, string etf, string sector, int &idx) {
+void MultiAsset_AddSectorETF(string symbol, string etf, string sector, int idx) {
    g_SectorETFs[idx].symbol = symbol;
    g_SectorETFs[idx].etf = etf;
    g_SectorETFs[idx].sectorName = sector;

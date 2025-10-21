@@ -32,7 +32,7 @@ enum VOLATILITY_REGIME {
 //--------------------------------------------------------------------
 double Volatility_GetBBW(string symbol, int timeframe, int period = 20, double deviation = 2.0) {
    double upper = iBands(symbol, timeframe, period, deviation, 0, PRICE_CLOSE, MODE_UPPER, 0);
-   double lower = iBands(symbol, timeframe, period, deviation, 0, PRICE_LOWER, 0);
+   double lower = iBands(symbol, timeframe, period, deviation, 0, PRICE_CLOSE, MODE_LOWER, 0);
    double middle = iBands(symbol, timeframe, period, deviation, 0, PRICE_CLOSE, MODE_MAIN, 0);
 
    if(middle == 0) return 0;

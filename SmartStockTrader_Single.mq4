@@ -11,12 +11,12 @@
 //--------------------------------------------------------------------
 // PHASE 1 + PHASE 2 MODULE INCLUDES (Production-Grade Enhancement)
 //--------------------------------------------------------------------
-#include "Include/SST_NewsFilter.mqh"
-#include "Include/SST_CorrelationMatrix.mqh"
-#include "Include/SST_AdvancedVolatility.mqh"
-#include "Include/SST_DrawdownProtection.mqh"
-#include "Include/SST_MultiAsset.mqh"
-#include "Include/SST_ExitOptimization.mqh"
+#include <SST_NewsFilter.mqh>
+#include <SST_CorrelationMatrix.mqh>
+#include <SST_AdvancedVolatility.mqh>
+#include <SST_DrawdownProtection.mqh>
+#include <SST_MultiAsset.mqh>
+#include <SST_ExitOptimization.mqh>
 
 //--------------------------------------------------------------------
 // LICENSE PARAMETERS

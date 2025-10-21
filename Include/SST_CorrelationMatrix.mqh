@@ -64,72 +64,72 @@ void Correlation_InitializeSectorMap() {
    ArrayResize(g_SectorMap, 100);  // Room for 100 symbols
 
    // TECHNOLOGY SECTOR
-   Correlation_AddToSectorMap("AAPL", SECTOR_TECHNOLOGY, "Technology", mapSize++);
-   Correlation_AddToSectorMap("MSFT", SECTOR_TECHNOLOGY, "Technology", mapSize++);
-   Correlation_AddToSectorMap("GOOGL", SECTOR_TECHNOLOGY, "Technology", mapSize++);
-   Correlation_AddToSectorMap("GOOG", SECTOR_TECHNOLOGY, "Technology", mapSize++);
-   Correlation_AddToSectorMap("AMZN", SECTOR_TECHNOLOGY, "Technology", mapSize++);
-   Correlation_AddToSectorMap("META", SECTOR_TECHNOLOGY, "Technology", mapSize++);
-   Correlation_AddToSectorMap("NVDA", SECTOR_TECHNOLOGY, "Technology", mapSize++);
-   Correlation_AddToSectorMap("AMD", SECTOR_TECHNOLOGY, "Technology", mapSize++);
-   Correlation_AddToSectorMap("NFLX", SECTOR_TECHNOLOGY, "Technology", mapSize++);
-   Correlation_AddToSectorMap("TSLA", SECTOR_TECHNOLOGY, "Technology", mapSize++);
-   Correlation_AddToSectorMap("CRM", SECTOR_TECHNOLOGY, "Technology", mapSize++);
-   Correlation_AddToSectorMap("ORCL", SECTOR_TECHNOLOGY, "Technology", mapSize++);
-   Correlation_AddToSectorMap("ADBE", SECTOR_TECHNOLOGY, "Technology", mapSize++);
-   Correlation_AddToSectorMap("INTC", SECTOR_TECHNOLOGY, "Technology", mapSize++);
-   Correlation_AddToSectorMap("CSCO", SECTOR_TECHNOLOGY, "Technology", mapSize++);
+   Correlation_AddToSectorMap("AAPL", SECTOR_TECHNOLOGY, "Technology", mapSize); mapSize++;
+   Correlation_AddToSectorMap("MSFT", SECTOR_TECHNOLOGY, "Technology", mapSize); mapSize++;
+   Correlation_AddToSectorMap("GOOGL", SECTOR_TECHNOLOGY, "Technology", mapSize); mapSize++;
+   Correlation_AddToSectorMap("GOOG", SECTOR_TECHNOLOGY, "Technology", mapSize); mapSize++;
+   Correlation_AddToSectorMap("AMZN", SECTOR_TECHNOLOGY, "Technology", mapSize); mapSize++;
+   Correlation_AddToSectorMap("META", SECTOR_TECHNOLOGY, "Technology", mapSize); mapSize++;
+   Correlation_AddToSectorMap("NVDA", SECTOR_TECHNOLOGY, "Technology", mapSize); mapSize++;
+   Correlation_AddToSectorMap("AMD", SECTOR_TECHNOLOGY, "Technology", mapSize); mapSize++;
+   Correlation_AddToSectorMap("NFLX", SECTOR_TECHNOLOGY, "Technology", mapSize); mapSize++;
+   Correlation_AddToSectorMap("TSLA", SECTOR_TECHNOLOGY, "Technology", mapSize); mapSize++;
+   Correlation_AddToSectorMap("CRM", SECTOR_TECHNOLOGY, "Technology", mapSize); mapSize++;
+   Correlation_AddToSectorMap("ORCL", SECTOR_TECHNOLOGY, "Technology", mapSize); mapSize++;
+   Correlation_AddToSectorMap("ADBE", SECTOR_TECHNOLOGY, "Technology", mapSize); mapSize++;
+   Correlation_AddToSectorMap("INTC", SECTOR_TECHNOLOGY, "Technology", mapSize); mapSize++;
+   Correlation_AddToSectorMap("CSCO", SECTOR_TECHNOLOGY, "Technology", mapSize); mapSize++;
 
    // FINANCE SECTOR
-   Correlation_AddToSectorMap("JPM", SECTOR_FINANCE, "Finance", mapSize++);
-   Correlation_AddToSectorMap("BAC", SECTOR_FINANCE, "Finance", mapSize++);
-   Correlation_AddToSectorMap("WFC", SECTOR_FINANCE, "Finance", mapSize++);
-   Correlation_AddToSectorMap("GS", SECTOR_FINANCE, "Finance", mapSize++);
-   Correlation_AddToSectorMap("MS", SECTOR_FINANCE, "Finance", mapSize++);
-   Correlation_AddToSectorMap("C", SECTOR_FINANCE, "Finance", mapSize++);
-   Correlation_AddToSectorMap("V", SECTOR_FINANCE, "Finance", mapSize++);
-   Correlation_AddToSectorMap("MA", SECTOR_FINANCE, "Finance", mapSize++);
-   Correlation_AddToSectorMap("AXP", SECTOR_FINANCE, "Finance", mapSize++);
-   Correlation_AddToSectorMap("BRK.B", SECTOR_FINANCE, "Finance", mapSize++);
+   Correlation_AddToSectorMap("JPM", SECTOR_FINANCE, "Finance", mapSize); mapSize++;
+   Correlation_AddToSectorMap("BAC", SECTOR_FINANCE, "Finance", mapSize); mapSize++;
+   Correlation_AddToSectorMap("WFC", SECTOR_FINANCE, "Finance", mapSize); mapSize++;
+   Correlation_AddToSectorMap("GS", SECTOR_FINANCE, "Finance", mapSize); mapSize++;
+   Correlation_AddToSectorMap("MS", SECTOR_FINANCE, "Finance", mapSize); mapSize++;
+   Correlation_AddToSectorMap("C", SECTOR_FINANCE, "Finance", mapSize); mapSize++;
+   Correlation_AddToSectorMap("V", SECTOR_FINANCE, "Finance", mapSize); mapSize++;
+   Correlation_AddToSectorMap("MA", SECTOR_FINANCE, "Finance", mapSize); mapSize++;
+   Correlation_AddToSectorMap("AXP", SECTOR_FINANCE, "Finance", mapSize); mapSize++;
+   Correlation_AddToSectorMap("BRK.B", SECTOR_FINANCE, "Finance", mapSize); mapSize++;
 
    // HEALTHCARE SECTOR
-   Correlation_AddToSectorMap("JNJ", SECTOR_HEALTHCARE, "Healthcare", mapSize++);
-   Correlation_AddToSectorMap("UNH", SECTOR_HEALTHCARE, "Healthcare", mapSize++);
-   Correlation_AddToSectorMap("PFE", SECTOR_HEALTHCARE, "Healthcare", mapSize++);
-   Correlation_AddToSectorMap("ABT", SECTOR_HEALTHCARE, "Healthcare", mapSize++);
-   Correlation_AddToSectorMap("TMO", SECTOR_HEALTHCARE, "Healthcare", mapSize++);
-   Correlation_AddToSectorMap("MRK", SECTOR_HEALTHCARE, "Healthcare", mapSize++);
-   Correlation_AddToSectorMap("LLY", SECTOR_HEALTHCARE, "Healthcare", mapSize++);
+   Correlation_AddToSectorMap("JNJ", SECTOR_HEALTHCARE, "Healthcare", mapSize); mapSize++;
+   Correlation_AddToSectorMap("UNH", SECTOR_HEALTHCARE, "Healthcare", mapSize); mapSize++;
+   Correlation_AddToSectorMap("PFE", SECTOR_HEALTHCARE, "Healthcare", mapSize); mapSize++;
+   Correlation_AddToSectorMap("ABT", SECTOR_HEALTHCARE, "Healthcare", mapSize); mapSize++;
+   Correlation_AddToSectorMap("TMO", SECTOR_HEALTHCARE, "Healthcare", mapSize); mapSize++;
+   Correlation_AddToSectorMap("MRK", SECTOR_HEALTHCARE, "Healthcare", mapSize); mapSize++;
+   Correlation_AddToSectorMap("LLY", SECTOR_HEALTHCARE, "Healthcare", mapSize); mapSize++;
 
    // ENERGY SECTOR
-   Correlation_AddToSectorMap("XOM", SECTOR_ENERGY, "Energy", mapSize++);
-   Correlation_AddToSectorMap("CVX", SECTOR_ENERGY, "Energy", mapSize++);
-   Correlation_AddToSectorMap("COP", SECTOR_ENERGY, "Energy", mapSize++);
-   Correlation_AddToSectorMap("SLB", SECTOR_ENERGY, "Energy", mapSize++);
+   Correlation_AddToSectorMap("XOM", SECTOR_ENERGY, "Energy", mapSize); mapSize++;
+   Correlation_AddToSectorMap("CVX", SECTOR_ENERGY, "Energy", mapSize); mapSize++;
+   Correlation_AddToSectorMap("COP", SECTOR_ENERGY, "Energy", mapSize); mapSize++;
+   Correlation_AddToSectorMap("SLB", SECTOR_ENERGY, "Energy", mapSize); mapSize++;
 
    // CONSUMER SECTOR
-   Correlation_AddToSectorMap("WMT", SECTOR_CONSUMER, "Consumer", mapSize++);
-   Correlation_AddToSectorMap("PG", SECTOR_CONSUMER, "Consumer", mapSize++);
-   Correlation_AddToSectorMap("KO", SECTOR_CONSUMER, "Consumer", mapSize++);
-   Correlation_AddToSectorMap("PEP", SECTOR_CONSUMER, "Consumer", mapSize++);
-   Correlation_AddToSectorMap("COST", SECTOR_CONSUMER, "Consumer", mapSize++);
-   Correlation_AddToSectorMap("NKE", SECTOR_CONSUMER, "Consumer", mapSize++);
-   Correlation_AddToSectorMap("MCD", SECTOR_CONSUMER, "Consumer", mapSize++);
-   Correlation_AddToSectorMap("DIS", SECTOR_CONSUMER, "Consumer", mapSize++);
+   Correlation_AddToSectorMap("WMT", SECTOR_CONSUMER, "Consumer", mapSize); mapSize++;
+   Correlation_AddToSectorMap("PG", SECTOR_CONSUMER, "Consumer", mapSize); mapSize++;
+   Correlation_AddToSectorMap("KO", SECTOR_CONSUMER, "Consumer", mapSize); mapSize++;
+   Correlation_AddToSectorMap("PEP", SECTOR_CONSUMER, "Consumer", mapSize); mapSize++;
+   Correlation_AddToSectorMap("COST", SECTOR_CONSUMER, "Consumer", mapSize); mapSize++;
+   Correlation_AddToSectorMap("NKE", SECTOR_CONSUMER, "Consumer", mapSize); mapSize++;
+   Correlation_AddToSectorMap("MCD", SECTOR_CONSUMER, "Consumer", mapSize); mapSize++;
+   Correlation_AddToSectorMap("DIS", SECTOR_CONSUMER, "Consumer", mapSize); mapSize++;
 
    // INDUSTRIAL SECTOR
-   Correlation_AddToSectorMap("BA", SECTOR_INDUSTRIAL, "Industrial", mapSize++);
-   Correlation_AddToSectorMap("CAT", SECTOR_INDUSTRIAL, "Industrial", mapSize++);
-   Correlation_AddToSectorMap("GE", SECTOR_INDUSTRIAL, "Industrial", mapSize++);
-   Correlation_AddToSectorMap("MMM", SECTOR_INDUSTRIAL, "Industrial", mapSize++);
-   Correlation_AddToSectorMap("UPS", SECTOR_INDUSTRIAL, "Industrial", mapSize++);
+   Correlation_AddToSectorMap("BA", SECTOR_INDUSTRIAL, "Industrial", mapSize); mapSize++;
+   Correlation_AddToSectorMap("CAT", SECTOR_INDUSTRIAL, "Industrial", mapSize); mapSize++;
+   Correlation_AddToSectorMap("GE", SECTOR_INDUSTRIAL, "Industrial", mapSize); mapSize++;
+   Correlation_AddToSectorMap("MMM", SECTOR_INDUSTRIAL, "Industrial", mapSize); mapSize++;
+   Correlation_AddToSectorMap("UPS", SECTOR_INDUSTRIAL, "Industrial", mapSize); mapSize++;
 
    ArrayResize(g_SectorMap, mapSize);
 
    Print("✓ Sector map initialized with ", mapSize, " symbols across 7 sectors");
 }
 
-void Correlation_AddToSectorMap(string symbol, SECTOR_TYPE sector, string sectorName, int &index) {
+void Correlation_AddToSectorMap(string symbol, SECTOR_TYPE sector, string sectorName, int index) {
    g_SectorMap[index].symbol = symbol;
    g_SectorMap[index].sector = sector;
    g_SectorMap[index].sectorName = sectorName;
@@ -345,10 +345,7 @@ bool Correlation_CheckSectorLimits(string newSymbol) {
 double Correlation_GetDiversificationScore() {
    int totalPositions = 0;
    int uniqueSectors = 0;
-   bool sectorHasPosition[11]; // 11 sector types
-
-   // Initialize
-   for(int i = 0; i < 11; i++) sectorHasPosition[i] = false;
+   bool sectorHasPosition[11] = {false, false, false, false, false, false, false, false, false, false, false}; // 11 sector types
 
    // Count positions and sectors
    for(int i = 0; i < OrdersTotal(); i++) {

@@ -32,7 +32,7 @@ double ExitOpt_CalculateTrailingDistance(string symbol, int timeframe, bool isBu
 
    // ADVANCED: Adjust trailing based on profit level and volatility
    double point = MarketInfo(symbol, MODE_POINT);
-   double profit Pips = MathAbs(currentPrice - entryPrice) / (point * 10.0);
+   double profitPips = MathAbs(currentPrice - entryPrice) / (point * 10.0);
    double atr = iATR(symbol, timeframe, 14, 0);
    double atrPips = atr / (point * 10.0);
 

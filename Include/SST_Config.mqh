@@ -11,9 +11,11 @@
 //--------------------------------------------------------------------
 
 //=== General Settings ===
-extern string  Stocks                = "AAPL,MSFT,GOOGL,AMZN,TSLA,NVDA,META,NFLX,AMD,PYPL";  // Comma-delimited stock list
+extern string  Stocks                = "AAPL,MSFT,GOOGL,AMZN,TSLA,NVDA,META,NFLX,AMD,PYPL";  // Comma-delimited stock list (leave empty to use current chart symbol)
 extern int     MagicNumber           = 555777;       // Unique EA identifier
 extern bool    EnableTrading         = true;         // Master on/off switch
+extern bool    BacktestMode          = false;        // Enable backtest features (24/7 trading, verbose logs, no time restrictions)
+extern bool    VerboseLogging        = false;       // Detailed logs for debugging
 
 //=== Risk Management ===
 extern double  RiskPercentPerTrade   = 1.0;          // % risk per trade
@@ -275,8 +277,16 @@ int ParseSymbols(string symbolList, string &output[]) {
 
 // Initialize configuration
 void Config_Init() {
-   g_SymbolCount = ParseSymbols(Stocks, g_Symbols);
-   Print("Smart Stock Trader initialized with ", g_SymbolCount, " symbols");
+   // If Stocks is empty or BacktestMode, use current chart symbol
+   if(Stocks == "" || BacktestMode) {
+      g_SymbolCount = 1;
+      ArrayResize(g_Symbols, 1);
+      g_Symbols[0] = Symbol();
+      if(VerboseLogging) Print("✓ Trading current chart symbol: ", Symbol());
+   } else {
+      g_SymbolCount = ParseSymbols(Stocks, g_Symbols);
+      if(VerboseLogging) Print("✓ Trading ", g_SymbolCount, " symbols: ", Stocks);
+   }
 
    g_DailyStartTime = TimeCurrent();
    g_DailyStartEquity = AccountEquity();
@@ -285,6 +295,15 @@ void Config_Init() {
    ArrayResize(g_CorrelationCache, 0);
    ArrayResize(g_SRLevels, 0);
    ArrayResize(g_Patterns, 0);
+
+   if(BacktestMode) {
+      Print("╔════════════════════════════════════════╗");
+      Print("║      BACKTEST MODE ENABLED            ║");
+      Print("║  - Trading 24/7 (no time limits)      ║");
+      Print("║  - Verbose logging enabled            ║");
+      Print("║  - Single symbol: ", Symbol(), "           ║");
+      Print("╚════════════════════════════════════════╝");
+   }
 }
 
 // Reset daily statistics

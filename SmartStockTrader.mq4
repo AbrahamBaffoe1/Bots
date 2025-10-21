@@ -81,6 +81,27 @@ void OnDeinit(const int reason) {
    Print("\n=== SMART STOCK TRADER SHUTTING DOWN ===");
    Print("Reason: ", reason);
 
+   // Show final summary if BacktestMode or VerboseLogging
+   if(BacktestMode || VerboseLogging) {
+      double finalEquity = AccountEquity();
+      double totalPL = finalEquity - g_DailyStartEquity;
+      int totalTrades = g_DailyTrades;  // This is actually all-time if analytics module tracks it
+
+      Print("\n╔════════════════════════════════════════╗");
+      Print("║     PERFORMANCE SUMMARY               ║");
+      Print("╠════════════════════════════════════════╣");
+      Print("║ Starting Equity:  $", DoubleToString(g_DailyStartEquity, 2));
+      Print("║ Final Equity:     $", DoubleToString(finalEquity, 2));
+      Print("║ Total P/L:        $", DoubleToString(totalPL, 2), " (", DoubleToString((totalPL/g_DailyStartEquity)*100, 2), "%)");
+      Print("║ Total Trades:     ", totalTrades);
+      if(totalTrades > 0) {
+         double winRate = Analytics_GetWinRate();
+         Print("║ Win Rate:         ", DoubleToString(winRate * 100, 1), "%");
+         Print("║ Profit Factor:    ", DoubleToString(Analytics_GetProfitFactor(), 2));
+      }
+      Print("╚════════════════════════════════════════╝\n");
+   }
+
    // Close all open positions if requested
    if(CloseBeforeMarketClose) {
       Print("Closing all open positions...");

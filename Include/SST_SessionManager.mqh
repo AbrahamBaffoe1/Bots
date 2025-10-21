@@ -80,6 +80,11 @@ SESSION_TYPE Session_GetCurrent() {
 
 // Check if currently in trading session
 bool Session_IsTradingTime() {
+   // In backtest mode, trade 24/7
+   if(BacktestMode) {
+      return true;
+   }
+
    SESSION_TYPE session = Session_GetCurrent();
 
    if(session == SESSION_CLOSED) {

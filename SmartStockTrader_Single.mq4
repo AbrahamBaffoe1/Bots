@@ -11,17 +11,19 @@
 //--------------------------------------------------------------------
 // LICENSE PARAMETERS
 //--------------------------------------------------------------------
-extern string  LicenseKey            = "";                              // Enter your license key
+extern string  LicenseKey            = "SST-BASIC-X3EWSS-F2LSJW-766S";   // Your license key
 extern datetime ExpirationDate       = D'2026.12.31 23:59:59';         // License expiration date
-extern string  AuthorizedAccounts    = "";                             // Comma-separated account numbers
-extern bool    RequireLicenseKey     = true;                           // Require valid license key
+extern string  AuthorizedAccounts    = "";                             // Comma-separated account numbers (leave empty for any account)
+extern bool    RequireLicenseKey     = true;                           // Set FALSE to disable license check for testing
 
 //--------------------------------------------------------------------
 // EXTERNAL PARAMETERS
 //--------------------------------------------------------------------
-extern string  Stocks                = "AAPL,MSFT,GOOGL,AMZN,TSLA";
+extern string  Stocks                = "AAPL,MSFT,GOOGL,AMZN,TSLA";  // Leave empty to use current chart symbol
 extern int     MagicNumber           = 555777;
 extern bool    EnableTrading         = true;
+extern bool    BacktestMode          = false;                        // Enable backtest features (24/7, verbose logs, no restrictions)
+extern bool    VerboseLogging        = false;                       // Detailed logs for debugging
 extern double  RiskPercentPerTrade   = 1.0;
 extern double  MaxDailyLossPercent   = 5.0;
 extern bool    ShowDashboard         = true;
@@ -77,7 +79,9 @@ EA_STATE g_EAState = STATE_READY;
 string g_ValidLicenseKeys[] = {
    "SST-PRO-ABC123-XYZ789",
    "SST-PRO-DEF456-UVW012",
-   "SST-PRO-GHI789-RST345"
+   "SST-PRO-GHI789-RST345",
+   "SST-PRO-TEST01-DEMO99-K7M2",
+   "SST-BASIC-X3EWSS-F2LSJW-766S"  // ← Your generated key
 };
 
 //--------------------------------------------------------------------
@@ -119,6 +123,17 @@ int GetDaysUntilExpiration() {
 }
 
 bool ValidateLicense() {
+   // Skip license check if not required or in backtest mode
+   if(!RequireLicenseKey) {
+      Print("⚠ License check DISABLED by parameter");
+      return true;
+   }
+
+   if(BacktestMode) {
+      Print("✓ Backtest mode - skipping license validation");
+      return true;
+   }
+
    Print("=== LICENSE VALIDATION ===");
    Print("Hardware Fingerprint: ", GetHardwareFingerprint());
    Print("Account: ", AccountNumber());
@@ -192,6 +207,11 @@ int ParseSymbols(string symbolList, string &output[]) {
 // SESSION MANAGEMENT
 //--------------------------------------------------------------------
 bool IsTradingTime() {
+   // In backtest mode, trade 24/7
+   if(BacktestMode) {
+      return true;
+   }
+
    // Simplified: Just check if regular hours are enabled
    if(!TradeRegularHours && !TradePreMarket && !TradeAfterHours) return false;
 
@@ -350,8 +370,26 @@ int OnInit() {
 
    Print("\n✓ License validated successfully\n");
 
-   g_SymbolCount = ParseSymbols(Stocks, g_Symbols);
-   Print("Trading ", g_SymbolCount, " symbols: ", Stocks);
+   // If Stocks is empty or BacktestMode, use current chart symbol
+   if(Stocks == "" || BacktestMode) {
+      g_SymbolCount = 1;
+      ArrayResize(g_Symbols, 1);
+      g_Symbols[0] = Symbol();
+      if(VerboseLogging) Print("✓ Trading current chart symbol: ", Symbol());
+   } else {
+      g_SymbolCount = ParseSymbols(Stocks, g_Symbols);
+      if(VerboseLogging) Print("✓ Trading ", g_SymbolCount, " symbols: ", Stocks);
+   }
+
+   if(BacktestMode) {
+      Print("╔════════════════════════════════════════╗");
+      Print("║      BACKTEST MODE ENABLED            ║");
+      Print("║  - Trading 24/7 (no time limits)      ║");
+      Print("║  - Verbose logging enabled            ║");
+      Print("║  - Single symbol: ", Symbol(), "           ║");
+      Print("╚════════════════════════════════════════╝");
+      VerboseLogging = true;  // Force verbose logging in backtest mode
+   }
 
    g_DailyStartTime = TimeCurrent();
    g_DailyStartEquity = AccountEquity();

@@ -8,7 +8,7 @@
 //--------------------------------------------------------------------
 // LICENSE PARAMETERS (To be set in main EA)
 //--------------------------------------------------------------------
-extern string  LicenseKey = "";                              // Enter your license key
+extern string  LicenseKey = "SST-BASIC-X3EWSS-F2LSJW-766S";  // Your license key
 extern datetime ExpirationDate = D'2026.12.31 23:59:59';    // License expiration date
 extern string  AuthorizedAccounts = "";                     // Comma-separated account numbers (leave empty to disable)
 extern bool    EnableHardwareIDLock = false;                // Enable hardware fingerprint lock
@@ -21,7 +21,8 @@ extern bool    RequireLicenseKey = true;                    // Require valid lic
 string g_ValidLicenseKeys[] = {
    "SST-PRO-ABC123-XYZ789",
    "SST-PRO-DEF456-UVW012",
-   "SST-PRO-GHI789-RST345"
+   "SST-PRO-GHI789-RST345",
+   "SST-BASIC-X3EWSS-F2LSJW-766S"  // Your generated key
 };
 
 //--------------------------------------------------------------------
@@ -139,6 +140,17 @@ int License_GetDaysUntilExpiration() {
 
 // Main license validation (call this in OnInit)
 bool License_Validate() {
+   // Skip license check if not required or in backtest mode
+   if(!RequireLicenseKey) {
+      Print("⚠ License check DISABLED by parameter");
+      return true;
+   }
+
+   if(BacktestMode) {
+      Print("✓ Backtest mode - skipping license validation");
+      return true;
+   }
+
    Print("=== LICENSE VALIDATION ===" );
    Print("Hardware Fingerprint: ", License_GetHardwareFingerprint());
    Print("Account Number: ", AccountNumber());

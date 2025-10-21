@@ -372,6 +372,8 @@ StrategySignal Strategy_RegimeAdaptive(string symbol, int timeframe) {
 // COMBINE ALL STRATEGIES
 //--------------------------------------------------------------------
 StrategySignal Strategy_GetBestSignal(string symbol, int timeframe) {
+   if(VerboseLogging) Print("\n▶ Analyzing ", symbol, " at ", TimeToString(TimeCurrent(), TIME_DATE|TIME_MINUTES));
+
    StrategySignal signals[8];
    signals[0] = Strategy_Momentum(symbol, timeframe);
    signals[1] = Strategy_MeanReversion(symbol, timeframe);
@@ -394,6 +396,11 @@ StrategySignal Strategy_GetBestSignal(string symbol, int timeframe) {
    double totalBearishConfidence = 0;
 
    for(int i = 0; i < 8; i++) {
+      if(VerboseLogging && signals[i].canTrade && signals[i].direction != 0) {
+         string dir = signals[i].direction == 1 ? "BUY" : "SELL";
+         Print("  ", signals[i].strategyName, ": ", dir, " (", DoubleToString(signals[i].confidence * 100, 1), "%)");
+      }
+
       if(signals[i].canTrade && signals[i].direction == 1) {
          bullishCount++;
          totalBullishConfidence += signals[i].confidence;
@@ -415,9 +422,13 @@ StrategySignal Strategy_GetBestSignal(string symbol, int timeframe) {
    if(bullishCount >= 2 && bullishCount > bearishCount) {
       bestSignal.confidence = totalBullishConfidence / bullishCount;
       bestSignal.direction = 1;
+      if(VerboseLogging) Print("  ✓ Final signal: BUY (", bullishCount, " strategies agree, ", DoubleToString(bestSignal.confidence * 100, 1), "%)");
    } else if(bearishCount >= 2 && bearishCount > bullishCount) {
       bestSignal.confidence = totalBearishConfidence / bearishCount;
       bestSignal.direction = -1;
+      if(VerboseLogging) Print("  ✓ Final signal: SELL (", bearishCount, " strategies agree, ", DoubleToString(bestSignal.confidence * 100, 1), "%)");
+   } else {
+      if(VerboseLogging) Print("  ✗ No consensus signal (Bullish:", bullishCount, " Bearish:", bearishCount, ")");
    }
 
    return bestSignal;

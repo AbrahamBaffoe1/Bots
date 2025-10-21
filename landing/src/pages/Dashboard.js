@@ -46,9 +46,9 @@ const Dashboard = () => {
         axios.get('http://localhost:5000/api/trades', config)
       ]);
 
-      // Backend returns { success: true, data: { bots: [] } } or { success: true, data: { trades: [] } }
-      const botsData = botsRes.data.data?.bots || botsRes.data.bots || [];
-      const tradesData = tradesRes.data.data?.trades || tradesRes.data.trades || [];
+      // Backend returns { success: true, data: [...] } where data is the array directly
+      const botsData = Array.isArray(botsRes.data.data) ? botsRes.data.data : (botsRes.data.data?.bots || botsRes.data.bots || []);
+      const tradesData = Array.isArray(tradesRes.data.data) ? tradesRes.data.data : (tradesRes.data.data?.trades || tradesRes.data.trades || []);
 
       setBots(botsData);
       setTrades(tradesData);

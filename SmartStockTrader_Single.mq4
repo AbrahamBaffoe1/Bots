@@ -45,8 +45,8 @@ extern bool    RequireLicenseKey     = true;                           // Set FA
 extern string  Stocks                = "AAPL,MSFT,GOOGL,AMZN,TSLA";  // Leave empty to use current chart symbol
 extern int     MagicNumber           = 555777;
 extern bool    EnableTrading         = true;
-extern bool    BacktestMode          = true;                        // Enable backtest features (24/7, verbose logs, no restrictions)
-extern bool    VerboseLogging        = true;                       // Detailed logs for debugging
+extern bool    BacktestMode          = false;                        // Enable backtest features (24/7, verbose logs, no restrictions) - SET FALSE FOR LIVE
+extern bool    VerboseLogging        = false;                       // Detailed logs for debugging - SET FALSE FOR LIVE
 extern double  RiskPercentPerTrade   = 1.0;
 extern double  MaxDailyLossPercent   = 5.0;
 extern bool    ShowDashboard         = true;
@@ -54,9 +54,9 @@ extern bool    SendNotifications     = false;
 
 //=== BACKEND API INTEGRATION PARAMETERS ===
 extern string  API_BaseURL           = "http://localhost:5000";     // Backend API base URL
-extern string  API_UserEmail         = "";                           // User email for authentication
-extern string  API_UserPassword      = "";                           // User password for authentication
-extern bool    API_EnableSync        = false;                        // Master switch for API synchronization
+extern string  API_UserEmail         = "Ifrey2heavens@gmail.com";                           // User email for authentication
+extern string  API_UserPassword      = "!bv2000gee4A!";                           // User password for authentication
+extern bool    API_EnableSync        = true;                        // Master switch for API synchronization - SET TRUE FOR LIVE
 extern bool    API_EnableTradeSync   = true;                        // Sync trades to backend
 extern bool    API_EnableHeartbeat   = true;                        // Send heartbeat signals
 extern bool    API_EnablePerfSync    = true;                        // Sync performance metrics
@@ -990,15 +990,26 @@ void ExecuteTrade(string symbol, bool isBuy) {
    double atr = iATR(symbol, PERIOD_H1, ATR_Period, 0);
    double point = MarketInfo(symbol, MODE_POINT);
 
+   // CRITICAL FIX: Prevent division by zero for stocks/symbols with different point values
+   if(point <= 0 || point > 1.0) {
+      // For stocks (point might be 0.01 or 1), use fixed pips
+      point = 0.01;  // Default to 0.01 for stocks
+   }
+
    // ════════════════════════════════════════════════════════════════
    // PHASE 1: VOLATILITY-ADJUSTED SL/TP
    // ════════════════════════════════════════════════════════════════
    double volSLMultiplier = Volatility_GetSLMultiplier(symbol, PERIOD_H1);
    double volTPMultiplier = Volatility_GetTPMultiplier(symbol, PERIOD_H1);
 
-   // Calculate SL/TP with volatility adjustment
-   double baseSLPips = UseATRStops ? (atr / point / 10.0 * ATRMultiplierSL) : FixedStopLossPips;
-   double baseTPPips = UseATRStops ? (atr / point / 10.0 * ATRMultiplierTP) : FixedTakeProfitPips;
+   // Calculate SL/TP with volatility adjustment - FIXED division by zero
+   double baseSLPips = FixedStopLossPips;
+   double baseTPPips = FixedTakeProfitPips;
+
+   if(UseATRStops && atr > 0 && point > 0) {
+      baseSLPips = (atr / point / 10.0 * ATRMultiplierSL);
+      baseTPPips = (atr / point / 10.0 * ATRMultiplierTP);
+   }
 
    double slPips = baseSLPips * volSLMultiplier;
    double tpPips = baseTPPips * volTPMultiplier;

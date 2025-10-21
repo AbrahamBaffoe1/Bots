@@ -6,23 +6,33 @@ const { Op } = require('sequelize');
  * Handles bot registration and management from MetaTrader EA
  */
 
-// Register/Get Bot (used by MT4 EA on startup)
+// Register/Get Bot (used by MT4 EA on startup AND dashboard)
 exports.registerOrGetBot = async (req, res) => {
   try {
     const {
       bot_name,
+      instance_name,
       account_number,
+      mt4_account,
       account_name,
       broker_name,
       server_name,
-      version
+      broker_server,
+      version,
+      is_live,
+      license_key
     } = req.body;
 
+    // Support both MT4 EA format (account_number) and dashboard format (mt4_account)
+    const accountNum = account_number || mt4_account;
+    const botName = bot_name || instance_name;
+    const serverName = server_name || broker_server;
+
     // Validate required fields
-    if (!account_number || !broker_name) {
+    if (!accountNum || !broker_name) {
       return res.status(400).json({
         success: false,
-        message: 'account_number and broker_name are required'
+        message: 'account_number (or mt4_account) and broker_name are required'
       });
     }
 
@@ -30,7 +40,7 @@ exports.registerOrGetBot = async (req, res) => {
     let bot = await BotInstance.findOne({
       where: {
         user_id: req.user.id,
-        mt4_account: account_number.toString(),
+        mt4_account: accountNum.toString(),
         broker_name: broker_name
       }
     });
@@ -38,9 +48,10 @@ exports.registerOrGetBot = async (req, res) => {
     if (bot) {
       // Bot exists, update it
       await bot.update({
-        instance_name: bot_name || bot.instance_name,
-        broker_server: server_name || bot.broker_server,
+        instance_name: botName || bot.instance_name,
+        broker_server: serverName || bot.broker_server,
         version: version || bot.version,
+        is_live: is_live !== undefined ? is_live : bot.is_live,
         status: 'running',
         started_at: new Date(),
         last_heartbeat: new Date()
@@ -58,6 +69,7 @@ exports.registerOrGetBot = async (req, res) => {
         success: true,
         message: 'Existing bot found and updated',
         data: {
+          bot: bot, // Full bot object for dashboard
           id: bot.id,
           _id: bot.id, // MongoDB compatibility
           bot_name: bot.instance_name,
@@ -70,13 +82,13 @@ exports.registerOrGetBot = async (req, res) => {
     // Create new bot instance
     bot = await BotInstance.create({
       user_id: req.user.id,
-      instance_name: bot_name || `Bot_${account_number}`,
-      mt4_account: account_number.toString(),
+      instance_name: botName || `Bot_${accountNum}`,
+      mt4_account: accountNum.toString(),
       account_name: account_name || '',
       broker_name: broker_name,
-      broker_server: server_name || '',
+      broker_server: serverName || '',
       version: version || '1.0',
-      is_live: true, // Assume live by default
+      is_live: is_live !== undefined ? is_live : true, // Use provided value or default to true
       status: 'running',
       started_at: new Date(),
       last_heartbeat: new Date()
@@ -87,12 +99,13 @@ exports.registerOrGetBot = async (req, res) => {
       bot_instance_id: bot.id,
       log_level: 'INFO',
       category: 'SYSTEM',
-      message: 'New bot registered from MT4 EA',
+      message: license_key ? 'New bot registered from dashboard' : 'New bot registered from MT4 EA',
       metadata: JSON.stringify({
-        account_number,
+        account_number: accountNum,
         broker: broker_name,
-        server: server_name,
-        version
+        server: serverName,
+        version,
+        source: license_key ? 'dashboard' : 'mt4_ea'
       })
     });
 
@@ -100,6 +113,7 @@ exports.registerOrGetBot = async (req, res) => {
       success: true,
       message: 'Bot registered successfully',
       data: {
+        bot: bot, // Full bot object for dashboard
         id: bot.id,
         _id: bot.id, // MongoDB compatibility
         bot_name: bot.instance_name,

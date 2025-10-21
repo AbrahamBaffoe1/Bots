@@ -36,7 +36,7 @@ body {
 
 /* Utilities */
 .gradient-text {
-  background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+  background: linear-gradient(135deg, #ff7f00 0%, #ff5722 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -172,10 +172,10 @@ body {
   right: 0;
   bottom: 0;
   background-image: url('../public/robot.jpg');
-  background-size: contain;
-  background-position: right center;
+  background-size: auto 110%;
+  background-position: right top;
   background-repeat: no-repeat;
-  opacity: 0.25;
+  opacity: 0.35;
   z-index: 0;
   will-change: transform;
   transform: translateY(var(--scroll-y));
@@ -188,7 +188,8 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(90deg, rgba(15, 15, 15, 0.85) 0%, rgba(15, 15, 15, 0.6) 50%, rgba(15, 15, 15, 0.85) 100%);
+  background: linear-gradient(90deg, rgba(15, 15, 15, 0.88) 0%, rgba(15, 15, 15, 0.5) 45%, rgba(15, 15, 15, 0.3) 65%, rgba(15, 15, 15, 0.75) 100%),
+              linear-gradient(180deg, rgba(15, 15, 15, 0.2) 0%, rgba(15, 15, 15, 0.4) 60%, rgba(15, 15, 15, 0.9) 100%);
   z-index: 0;
 }
 

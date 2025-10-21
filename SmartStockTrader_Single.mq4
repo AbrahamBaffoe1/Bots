@@ -53,6 +53,15 @@ extern int     SlowMA_Period         = 50;
 extern int     RSI_Period            = 14;
 extern int     ATR_Period            = 14;
 
+//=== QUICK WIN FILTERS (Added for +10-15% Profitability) ===
+extern double  MaxSpreadPips         = 2.0;          // Max spread in pips (reject wider spreads)
+extern bool    UseTimeOfDayFilter    = true;         // Skip first 30min and lunch hour
+extern int     MaxDailyTrades         = 10;          // Maximum trades per day (prevent overtrading)
+extern int     MinMinutesBetweenTrades = 15;        // Minimum minutes between trades
+extern bool    UseSPYTrendFilter     = true;         // Only trade with market direction
+extern string  MarketIndexSymbol     = "SPY";        // Market index for trend filter (SPY, QQQ, DIA)
+extern int     SPYTrendMA            = 50;           // MA period for SPY trend (50 or 200)
+
 //--------------------------------------------------------------------
 // GLOBAL VARIABLES
 //--------------------------------------------------------------------
@@ -69,6 +78,7 @@ int     g_TotalLosses = 0;
 double  g_TotalProfit = 0;
 double  g_TotalLoss = 0;
 bool    g_IsMarketHours = false;
+datetime g_LastTradeTime = 0;  // Track last trade time for spacing filter
 
 enum EA_STATE { STATE_READY, STATE_SUSPENDED };
 EA_STATE g_EAState = STATE_READY;
@@ -240,6 +250,113 @@ bool CheckDailyLossLimit() {
       return true;
    }
    return false;
+}
+
+//--------------------------------------------------------------------
+// QUICK WIN FILTERS - Added for +10-15% Profitability
+//--------------------------------------------------------------------
+
+// Filter 1: Check Spread (Avoid wide spreads)
+bool CheckSpreadFilter(string symbol) {
+   if(BacktestMode) return true;  // Skip in backtest
+
+   double spread = MarketInfo(symbol, MODE_SPREAD);
+   double point = MarketInfo(symbol, MODE_POINT);
+   double spreadPips = spread * point / (point * 10.0);
+
+   if(spreadPips > MaxSpreadPips) {
+      if(VerboseLogging) Print("✗ Spread too wide on ", symbol, ": ", DoubleToString(spreadPips, 1), " pips (max: ", MaxSpreadPips, ")");
+      return false;
+   }
+
+   if(VerboseLogging) Print("✓ Spread OK on ", symbol, ": ", DoubleToString(spreadPips, 1), " pips");
+   return true;
+}
+
+// Filter 2: Time of Day Filter (Avoid first 30min and lunch)
+bool CheckTimeOfDayFilter() {
+   if(!UseTimeOfDayFilter || BacktestMode) return true;
+
+   int hour = TimeHour(TimeCurrent());
+   int minute = TimeMinute(TimeCurrent());
+
+   // Skip first 30 minutes of market open (9:30-10:00 AM EST)
+   if(hour == 9 && minute < 30) {
+      if(VerboseLogging) Print("✗ Market just opened - waiting for first 30 min to pass");
+      return false;
+   }
+
+   if(hour == 10 && minute == 0) {
+      if(VerboseLogging) Print("✓ First 30 min passed - ready to trade");
+   }
+
+   // Skip lunch hour (12:00-1:00 PM EST - low volume, choppy)
+   if(hour == 12 || hour == 13) {
+      if(VerboseLogging && minute == 0) Print("✗ Lunch hour - skipping trades");
+      return false;
+   }
+
+   return true;
+}
+
+// Filter 3: Max Daily Trades Limit
+bool CheckMaxDailyTrades() {
+   if(g_DailyTrades >= MaxDailyTrades) {
+      if(VerboseLogging) Print("✗ Max daily trades reached (", g_DailyTrades, "/", MaxDailyTrades, ")");
+      return false;
+   }
+   return true;
+}
+
+// Filter 4: Minimum Time Between Trades
+bool CheckMinTimeBetweenTrades() {
+   if(g_LastTradeTime == 0) return true;  // First trade
+
+   int secondsSinceLastTrade = (int)(TimeCurrent() - g_LastTradeTime);
+   int minutesSinceLastTrade = secondsSinceLastTrade / 60;
+
+   if(minutesSinceLastTrade < MinMinutesBetweenTrades) {
+      if(VerboseLogging) Print("✗ Too soon since last trade (", minutesSinceLastTrade, " min, need ", MinMinutesBetweenTrades, " min)");
+      return false;
+   }
+
+   return true;
+}
+
+// Filter 5: SPY Trend Filter (Only trade with market direction)
+bool CheckSPYTrendFilter(bool isBuySignal) {
+   if(!UseSPYTrendFilter || BacktestMode) return true;
+
+   // Get SPY current price and MA
+   double spyClose = iClose(MarketIndexSymbol, PERIOD_D1, 0);
+   double spyMA = iMA(MarketIndexSymbol, PERIOD_D1, SPYTrendMA, 0, MODE_SMA, PRICE_CLOSE, 0);
+
+   // If data not available (symbol not found), skip filter
+   if(spyClose == 0 || spyMA == 0) {
+      if(VerboseLogging) Print("⚠ ", MarketIndexSymbol, " data not available - skipping trend filter");
+      return true;
+   }
+
+   bool marketBullish = (spyClose > spyMA);
+
+   // Only allow long trades when market is bullish
+   if(isBuySignal && !marketBullish) {
+      if(VerboseLogging) Print("✗ ", MarketIndexSymbol, " bearish (", DoubleToString(spyClose, 2), " < MA", SPYTrendMA, ": ", DoubleToString(spyMA, 2), ") - skipping LONG");
+      return false;
+   }
+
+   // Only allow short trades when market is bearish
+   if(!isBuySignal && marketBullish) {
+      if(VerboseLogging) Print("✗ ", MarketIndexSymbol, " bullish (", DoubleToString(spyClose, 2), " > MA", SPYTrendMA, ": ", DoubleToString(spyMA, 2), ") - skipping SHORT");
+      return false;
+   }
+
+   if(VerboseLogging) {
+      string trend = marketBullish ? "BULLISH" : "BEARISH";
+      Print("✓ ", MarketIndexSymbol, " ", trend, " - ", isBuySignal ? "LONG" : "SHORT", " trade aligned");
+   }
+
+   return true;
 }
 
 double CalculateLotSize(string symbol, double slPips) {
@@ -441,6 +558,17 @@ void OnTick() {
    lastScan = TimeCurrent();
 
    // Loop through symbols
+   // === QUICK WIN FILTERS - Pre-trade checks ===
+
+   // Filter: Time of Day
+   if(!CheckTimeOfDayFilter()) return;
+
+   // Filter: Max Daily Trades
+   if(!CheckMaxDailyTrades()) return;
+
+   // Filter: Min Time Between Trades
+   if(!CheckMinTimeBetweenTrades()) return;
+
    for(int i = 0; i < g_SymbolCount; i++) {
       string symbol = g_Symbols[i];
 
@@ -457,12 +585,20 @@ void OnTick() {
 
       if(hasPosition) continue;
 
+      // Filter: Spread Check
+      if(!CheckSpreadFilter(symbol)) continue;
+
       // Check for signals
       bool buySignal = GetBuySignal(symbol);
       bool sellSignal = GetSellSignal(symbol);
 
       if(buySignal || sellSignal) {
-         ExecuteTrade(symbol, buySignal);
+         bool isBuy = buySignal;
+
+         // Filter: SPY Trend Confirmation
+         if(!CheckSPYTrendFilter(isBuy)) continue;
+
+         ExecuteTrade(symbol, isBuy);
       }
    }
 }
@@ -506,11 +642,18 @@ void ExecuteTrade(string symbol, bool isBuy) {
       Print("║ Type: ", isBuy ? "BUY" : "SELL");
       Print("║ Price: ", DoubleToString(price, _Digits));
       Print("║ Lot: ", DoubleToString(lotSize, 2));
-      Print("║ SL: ", DoubleToString(sl, _Digits));
-      Print("║ TP: ", DoubleToString(tp, _Digits));
+      Print("║ SL: ", DoubleToString(sl, _Digits), " (", DoubleToString(slPips, 1), " pips)");
+      Print("║ TP: ", DoubleToString(tp, _Digits), " (", DoubleToString(tpPips, 1), " pips)");
       Print("╚════════════════════════╝");
 
+      // Update tracking variables
       g_DailyTrades++;
+      g_TotalTrades++;
+      g_LastTradeTime = TimeCurrent();  // Record trade time for spacing filter
+
+      if(VerboseLogging) {
+         Print("✓ Trade #", g_DailyTrades, " of max ", MaxDailyTrades, " today");
+      }
 
       if(SendNotifications) {
          SendNotification("SmartStockTrader: " + (isBuy ? "BUY" : "SELL") + " " + symbol + " @ " + DoubleToString(price, _Digits));

@@ -172,10 +172,10 @@ body {
   right: 0;
   bottom: 0;
   background-image: url('../public/robot.jpg');
-  background-size: cover;
-  background-position: center;
+  background-size: contain;
+  background-position: right center;
   background-repeat: no-repeat;
-  opacity: 0.12;
+  opacity: 0.25;
   z-index: 0;
   will-change: transform;
   transform: translateY(var(--scroll-y));
@@ -188,7 +188,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(180deg, rgba(15, 15, 15, 0.8) 0%, rgba(15, 15, 15, 0.95) 100%);
+  background: linear-gradient(90deg, rgba(15, 15, 15, 0.85) 0%, rgba(15, 15, 15, 0.6) 50%, rgba(15, 15, 15, 0.85) 100%);
   z-index: 0;
 }
 

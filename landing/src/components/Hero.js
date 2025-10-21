@@ -187,25 +187,21 @@ const Hero = ({ scrollYProgress, onLoginClick }) => {
             animate={inView ? { opacity: 1 } : {}}
             transition={{ duration: 0.6, delay: 0.6 }}
           >
-            <div className="badge-group">
-              <div className="platform-badge">
-                <MT4Icon />
-                <span>MT4 Compatible</span>
-              </div>
-              <div className="platform-badge">
-                <MT5Icon />
-                <span>MT5 Ready</span>
-              </div>
+            <div className="platform-badge">
+              <MT4Icon />
+              <span>MT4 Compatible</span>
             </div>
-            <div className="security-badges">
-              <div className="security-badge">
-                <LockIcon />
-                <span>SSL Encrypted</span>
-              </div>
-              <div className="security-badge">
-                <ShieldIcon />
-                <span>Secure Trading</span>
-              </div>
+            <div className="platform-badge">
+              <MT5Icon />
+              <span>MT5 Ready</span>
+            </div>
+            <div className="security-badge">
+              <LockIcon />
+              <span>SSL Encrypted</span>
+            </div>
+            <div className="security-badge">
+              <ShieldIcon />
+              <span>Secure Trading</span>
             </div>
           </motion.div>
 

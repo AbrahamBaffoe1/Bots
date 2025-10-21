@@ -9,6 +9,16 @@
 #property description "Professional stock trading EA - Single file version"
 
 //--------------------------------------------------------------------
+// PHASE 1 + PHASE 2 MODULE INCLUDES (Production-Grade Enhancement)
+//--------------------------------------------------------------------
+#include "Include/SST_NewsFilter.mqh"
+#include "Include/SST_CorrelationMatrix.mqh"
+#include "Include/SST_AdvancedVolatility.mqh"
+#include "Include/SST_DrawdownProtection.mqh"
+#include "Include/SST_MultiAsset.mqh"
+#include "Include/SST_ExitOptimization.mqh"
+
+//--------------------------------------------------------------------
 // LICENSE PARAMETERS
 //--------------------------------------------------------------------
 extern string  LicenseKey            = "SST-BASIC-X3EWSS-F2LSJW-766S";   // Your license key
@@ -487,6 +497,39 @@ int OnInit() {
 
    Print("\n✓ License validated successfully\n");
 
+   // ════════════════════════════════════════════════════════════════
+   // PHASE 1 + PHASE 2: INITIALIZE ADVANCED MODULES
+   // ════════════════════════════════════════════════════════════════
+   Print("╔════════════════════════════════════════╗");
+   Print("║   INITIALIZING PHASE 1+2 MODULES      ║");
+   Print("╚════════════════════════════════════════╝");
+
+   // 1. News Filter - Economic calendar integration
+   News_InitializeCalendar();
+   Print("✓ News Filter initialized");
+
+   // 2. Correlation Matrix - Portfolio management
+   Correlation_InitializeSectorMap();
+   Print("✓ Correlation Matrix initialized (", ArraySize(g_SectorMap), " symbols mapped)");
+
+   // 3. Multi-Asset Confirmation - SPY/VIX/Bonds/Sectors
+   MultiAsset_InitSectorETFs();
+   Print("✓ Multi-Asset Confirmation initialized");
+
+   // 4. Drawdown Protection - Adaptive sizing
+   Drawdown_Init();
+   Print("✓ Drawdown Protection initialized");
+
+   // 5. Advanced Volatility - Already self-contained (no init needed)
+   Print("✓ Advanced Volatility module ready");
+
+   // 6. Exit Optimization - Already self-contained (no init needed)
+   Print("✓ Exit Optimization module ready");
+
+   Print("╔════════════════════════════════════════╗");
+   Print("║    ALL PHASE 1+2 MODULES ACTIVE!      ║");
+   Print("╚════════════════════════════════════════╝\n");
+
    // If Stocks is empty or BacktestMode, use current chart symbol
    if(Stocks == "" || BacktestMode) {
       g_SymbolCount = 1;
@@ -529,6 +572,11 @@ void OnDeinit(const int reason) {
 // ON TICK
 //--------------------------------------------------------------------
 void OnTick() {
+   // ════════════════════════════════════════════════════════════════
+   // PHASE 2: UPDATE DRAWDOWN PROTECTION (Every tick)
+   // ════════════════════════════════════════════════════════════════
+   Drawdown_Update();
+
    // Reset daily stats if new day
    if(TimeDay(TimeCurrent()) != TimeDay(g_DailyStartTime)) {
       g_DailyStartTime = TimeCurrent();
@@ -552,13 +600,23 @@ void OnTick() {
    if(!IsTradingTime()) return;
    if(CheckDailyLossLimit()) return;
 
+   // ════════════════════════════════════════════════════════════════
+   // PHASE 2: EMERGENCY STOP - Drawdown Protection
+   // ════════════════════════════════════════════════════════════════
+   if(Drawdown_ShouldStopTrading()) {
+      if(VerboseLogging) Print("🛑 DRAWDOWN PROTECTION: Trading suspended");
+      return;
+   }
+
    // Scan for trades once per minute
    static datetime lastScan = 0;
    if(TimeCurrent() - lastScan < 60) return;
    lastScan = TimeCurrent();
 
    // Loop through symbols
-   // === QUICK WIN FILTERS - Pre-trade checks ===
+   // ════════════════════════════════════════════════════════════════
+   // QUICK WIN FILTERS - Pre-trade checks (ALL symbols)
+   // ════════════════════════════════════════════════════════════════
 
    // Filter: Time of Day
    if(!CheckTimeOfDayFilter()) return;
@@ -569,24 +627,104 @@ void OnTick() {
    // Filter: Min Time Between Trades
    if(!CheckMinTimeBetweenTrades()) return;
 
+   // ════════════════════════════════════════════════════════════════
+   // PHASE 1: NEWS FILTER (Check BEFORE any trading)
+   // ════════════════════════════════════════════════════════════════
+   if(News_IsNewsTime()) {
+      if(VerboseLogging) Print("📰 NEWS TIME: Trading blocked (major news approaching/ongoing)");
+      return;
+   }
+
    for(int i = 0; i < g_SymbolCount; i++) {
       string symbol = g_Symbols[i];
 
       // Check if already have position
       bool hasPosition = false;
+      int existingTicket = -1;
       for(int j = 0; j < OrdersTotal(); j++) {
          if(OrderSelect(j, SELECT_BY_POS, MODE_TRADES)) {
             if(OrderSymbol() == symbol && OrderMagicNumber() == MagicNumber) {
                hasPosition = true;
+               existingTicket = OrderTicket();
                break;
             }
          }
       }
 
-      if(hasPosition) continue;
+      // ════════════════════════════════════════════════════════════════
+      // PHASE 2: EXIT OPTIMIZATION - Manage existing positions
+      // ════════════════════════════════════════════════════════════════
+      if(hasPosition && existingTicket >= 0) {
+         // Update trailing stop
+         ExitOpt_UpdateTrailingStop(existingTicket, symbol, PERIOD_H1);
+
+         // Check exit signals
+         if(OrderSelect(existingTicket, SELECT_BY_TICKET)) {
+            bool isLong = (OrderType() == OP_BUY);
+            double entryPrice = OrderOpenPrice();
+            double currentPrice = isLong ? MarketInfo(symbol, MODE_BID) : MarketInfo(symbol, MODE_ASK);
+            datetime entryTime = OrderOpenTime();
+            double currentSL = OrderStopLoss();
+
+            if(ExitOpt_ShouldExit(existingTicket, symbol, PERIOD_H1, isLong, entryPrice, currentPrice, entryTime, currentSL)) {
+               // Close the trade
+               double closePrice = isLong ? MarketInfo(symbol, MODE_BID) : MarketInfo(symbol, MODE_ASK);
+               double orderProfit = OrderProfit() + OrderSwap() + OrderCommission();
+               bool isWin = (orderProfit > 0);
+
+               if(OrderClose(existingTicket, OrderLots(), closePrice, 3, clrRed)) {
+                  Print("✓ EXIT OPTIMIZATION: Closed #", existingTicket, " on ", symbol,
+                        " - P/L: ", DoubleToString(orderProfit, 2));
+
+                  // ════════════════════════════════════════════════════════════════
+                  // PHASE 2: Record trade result in Drawdown Protection
+                  // ════════════════════════════════════════════════════════════════
+                  Drawdown_RecordTrade(isWin, orderProfit);
+
+                  // Update daily stats
+                  if(isWin) {
+                     g_DailyWins++;
+                     g_TotalWins++;
+                     g_TotalProfit += orderProfit;
+                  } else {
+                     g_DailyLosses++;
+                     g_TotalLosses++;
+                     g_TotalLoss += MathAbs(orderProfit);
+                  }
+               }
+            }
+         }
+
+         continue; // Already have position, skip to next symbol
+      }
+
+      // ════════════════════════════════════════════════════════════════
+      // PER-SYMBOL FILTERS (Only for new trade entries)
+      // ════════════════════════════════════════════════════════════════
 
       // Filter: Spread Check
       if(!CheckSpreadFilter(symbol)) continue;
+
+      // ════════════════════════════════════════════════════════════════
+      // PHASE 1: VOLATILITY FILTER
+      // ════════════════════════════════════════════════════════════════
+      if(!Volatility_IsTradeable(symbol, PERIOD_H1)) {
+         if(VerboseLogging) Print("✗ ", symbol, " - Volatility not tradeable (too low or too high)");
+         continue;
+      }
+
+      // ════════════════════════════════════════════════════════════════
+      // PHASE 1: CORRELATION & SECTOR LIMITS
+      // ════════════════════════════════════════════════════════════════
+      if(!Correlation_CheckNewPosition(symbol)) {
+         if(VerboseLogging) Print("✗ ", symbol, " - High correlation with existing positions");
+         continue;
+      }
+
+      if(!Correlation_CheckSectorLimits(symbol)) {
+         if(VerboseLogging) Print("✗ ", symbol, " - Sector exposure limits reached");
+         continue;
+      }
 
       // Check for signals
       bool buySignal = GetBuySignal(symbol);
@@ -595,8 +733,25 @@ void OnTick() {
       if(buySignal || sellSignal) {
          bool isBuy = buySignal;
 
-         // Filter: SPY Trend Confirmation
+         // Filter: SPY Trend Confirmation (Quick Win)
          if(!CheckSPYTrendFilter(isBuy)) continue;
+
+         // ════════════════════════════════════════════════════════════════
+         // PHASE 2: MULTI-ASSET CONFIRMATION
+         // ════════════════════════════════════════════════════════════════
+         if(!MultiAsset_ConfirmTrade(symbol, isBuy)) {
+            if(VerboseLogging) Print("✗ ", symbol, " - Multi-asset confirmation failed (market regime conflict)");
+            continue;
+         }
+
+         // ════════════════════════════════════════════════════════════════
+         // ALL FILTERS PASSED - EXECUTE TRADE!
+         // ════════════════════════════════════════════════════════════════
+         if(VerboseLogging) {
+            Print("╔════════════════════════════════════════╗");
+            Print("║  ✓ ALL FILTERS PASSED FOR ", symbol, "       ║");
+            Print("╚════════════════════════════════════════╝");
+         }
 
          ExecuteTrade(symbol, isBuy);
       }
@@ -610,9 +765,27 @@ void ExecuteTrade(string symbol, bool isBuy) {
    double atr = iATR(symbol, PERIOD_H1, ATR_Period, 0);
    double point = MarketInfo(symbol, MODE_POINT);
 
-   // Calculate SL/TP
-   double slPips = UseATRStops ? (atr / point / 10.0 * ATRMultiplierSL) : FixedStopLossPips;
-   double tpPips = UseATRStops ? (atr / point / 10.0 * ATRMultiplierTP) : FixedTakeProfitPips;
+   // ════════════════════════════════════════════════════════════════
+   // PHASE 1: VOLATILITY-ADJUSTED SL/TP
+   // ════════════════════════════════════════════════════════════════
+   double volSLMultiplier = Volatility_GetSLMultiplier(symbol, PERIOD_H1);
+   double volTPMultiplier = Volatility_GetTPMultiplier(symbol, PERIOD_H1);
+
+   // Calculate SL/TP with volatility adjustment
+   double baseSLPips = UseATRStops ? (atr / point / 10.0 * ATRMultiplierSL) : FixedStopLossPips;
+   double baseTPPips = UseATRStops ? (atr / point / 10.0 * ATRMultiplierTP) : FixedTakeProfitPips;
+
+   double slPips = baseSLPips * volSLMultiplier;
+   double tpPips = baseTPPips * volTPMultiplier;
+
+   if(VerboseLogging) {
+      VOLATILITY_REGIME volRegime = Volatility_GetRegime(symbol, PERIOD_H1);
+      string regimeStr = (volRegime == VOL_VERY_LOW ? "VERY LOW" :
+                         volRegime == VOL_LOW ? "LOW" :
+                         volRegime == VOL_NORMAL ? "NORMAL" :
+                         volRegime == VOL_HIGH ? "HIGH" : "VERY HIGH");
+      Print("📊 Volatility Regime: ", regimeStr, " (SL mult: ", DoubleToString(volSLMultiplier, 2), ", TP mult: ", DoubleToString(volTPMultiplier, 2), ")");
+   }
 
    double price = isBuy ? MarketInfo(symbol, MODE_ASK) : MarketInfo(symbol, MODE_BID);
    double slDistance = slPips * point * 10.0;
@@ -620,7 +793,32 @@ void ExecuteTrade(string symbol, bool isBuy) {
    double sl = isBuy ? (price - slDistance) : (price + slDistance);
    double tp = isBuy ? (price + tpDistance) : (price - tpDistance);
 
-   double lotSize = CalculateLotSize(symbol, slPips);
+   // ════════════════════════════════════════════════════════════════
+   // PHASE 2: ADAPTIVE POSITION SIZING
+   // ════════════════════════════════════════════════════════════════
+   // Base lot size from risk management
+   double baseLotSize = CalculateLotSize(symbol, slPips);
+
+   // Apply drawdown protection multiplier
+   double drawdownMult = Drawdown_GetSizeMultiplier();
+
+   // Apply volatility position size multiplier
+   double volPositionMult = Volatility_GetPositionSizeMultiplier(symbol, PERIOD_H1);
+
+   // Final position size
+   double lotSize = baseLotSize * drawdownMult * volPositionMult;
+
+   if(VerboseLogging) {
+      Print("💰 Position Sizing:");
+      Print("   Base lot: ", DoubleToString(baseLotSize, 2));
+      Print("   Drawdown mult: ", DoubleToString(drawdownMult, 2), " (", (drawdownMult < 1.0 ? "REDUCED" : "NORMAL"), ")");
+      Print("   Volatility mult: ", DoubleToString(volPositionMult, 2));
+      Print("   Final lot: ", DoubleToString(lotSize, 2));
+
+      // Show drawdown health
+      double healthScore = Drawdown_GetHealthScore();
+      Print("   Account Health: ", DoubleToString(healthScore * 100, 0), "%");
+   }
 
    int ticket = OrderSend(symbol,
                          isBuy ? OP_BUY : OP_SELL,

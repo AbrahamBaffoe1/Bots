@@ -106,21 +106,21 @@ public:
    }
 
    // Escape special characters in strings
-   string EscapeString(string input) {
-      string output = input;
+   string EscapeString(string inputStr) {
+      string outputStr = inputStr;
 
       // Escape backslash first
-      StringReplace(output, "\\", "\\\\");
+      StringReplace(outputStr, "\\", "\\\\");
 
       // Escape quotes
-      StringReplace(output, "\"", "\\\"");
+      StringReplace(outputStr, "\"", "\\\"");
 
       // Escape control characters
-      StringReplace(output, "\n", "\\n");
-      StringReplace(output, "\r", "\\r");
-      StringReplace(output, "\t", "\\t");
+      StringReplace(outputStr, "\n", "\\n");
+      StringReplace(outputStr, "\r", "\\r");
+      StringReplace(outputStr, "\t", "\\t");
 
-      return output;
+      return outputStr;
    }
 
    // Convert datetime to ISO 8601 format

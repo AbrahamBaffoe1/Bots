@@ -283,9 +283,8 @@ void Logger_AddToBuffer(LogEntry &entry) {
    g_LogBufferSize++;
 }
 
-// Get buffered logs (for remote sending)
-int Logger_GetBufferedLogs(LogEntry &output[]) {
-   ArrayCopy(output, g_LogBuffer);
+// Get buffered log count (for remote sending)
+int Logger_GetBufferedLogCount() {
    return g_LogBufferSize;
 }
 

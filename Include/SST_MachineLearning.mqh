@@ -218,10 +218,10 @@ MLPrediction ML_PredictPriceAction(string symbol, int timeframe) {
    features[5] = atr / close;
 
    // Feature 7: Volume ratio (current vs average)
-   double vol = iVolume(symbol, timeframe, 0);
+   double vol = (double)iVolume(symbol, timeframe, 0);
    double avgVol = 0;
    for(int i = 1; i <= 20; i++) {
-      avgVol += iVolume(symbol, timeframe, i);
+      avgVol += (double)iVolume(symbol, timeframe, i);
    }
    avgVol /= 20.0;
    features[6] = (avgVol > 0) ? (vol / avgVol - 1.0) : 0.0;

@@ -20,6 +20,18 @@
 #include <SST_MachineLearning.mqh>        // PHASE 3: AI/ML Module
 
 //--------------------------------------------------------------------
+// PHASE 4: DASHBOARD INTEGRATION MODULES (Backend API Sync)
+//--------------------------------------------------------------------
+#include <SST_WebAPI.mqh>                // HTTP/REST API client
+#include <SST_JSON.mqh>                  // JSON serialization/parsing
+#include <SST_APIConfig.mqh>             // API configuration management
+#include <SST_Logger.mqh>                // Production logging system
+#include <SST_BotAuth.mqh>               // Authentication & bot registration
+#include <SST_TradeSync.mqh>             // Trade synchronization
+#include <SST_Heartbeat.mqh>             // Heartbeat & monitoring
+#include <SST_PerformanceSync.mqh>       // Performance metrics sync
+
+//--------------------------------------------------------------------
 // LICENSE PARAMETERS
 //--------------------------------------------------------------------
 extern string  LicenseKey            = "SST-BASIC-X3EWSS-F2LSJW-766S";   // Your license key
@@ -39,6 +51,17 @@ extern double  RiskPercentPerTrade   = 1.0;
 extern double  MaxDailyLossPercent   = 5.0;
 extern bool    ShowDashboard         = true;
 extern bool    SendNotifications     = false;
+
+//=== BACKEND API INTEGRATION PARAMETERS ===
+extern string  API_BaseURL           = "http://localhost:5000";     // Backend API base URL
+extern string  API_UserEmail         = "";                           // User email for authentication
+extern string  API_UserPassword      = "";                           // User password for authentication
+extern bool    API_EnableSync        = true;                        // Master switch for API synchronization
+extern bool    API_EnableTradeSync   = true;                        // Sync trades to backend
+extern bool    API_EnableHeartbeat   = true;                        // Send heartbeat signals
+extern bool    API_EnablePerfSync    = true;                        // Sync performance metrics
+extern int     API_HeartbeatInterval = 60;                          // Heartbeat interval in seconds
+extern int     API_PerfSyncInterval  = 300;                         // Performance sync interval in seconds
 
 // Session Settings
 extern bool    Trade24_7             = true;                         // Trade 24/7 with no time restrictions (recommended for live trading)
@@ -506,6 +529,86 @@ int OnInit() {
    Print("\n✓ License validated successfully\n");
 
    // ════════════════════════════════════════════════════════════════
+   // PHASE 4: INITIALIZE BACKEND API INTEGRATION
+   // ════════════════════════════════════════════════════════════════
+   if(API_EnableSync && !BacktestMode) {
+      Print("╔════════════════════════════════════════╗");
+      Print("║   INITIALIZING API INTEGRATION        ║");
+      Print("╚════════════════════════════════════════╝");
+
+      // Initialize WebAPI module
+      WebAPI_Init();
+
+      // Initialize Logger
+      Logger_Init(LOG_INFO, true, false, false);
+
+      // Initialize API Configuration
+      APIConfig_Init(
+         API_BaseURL,
+         API_UserEmail,
+         API_UserPassword,
+         API_EnableTradeSync,
+         API_EnableHeartbeat,
+         API_EnablePerfSync,
+         VerboseLogging
+      );
+
+      // Set intervals
+      APIConfig_SetHeartbeatInterval(API_HeartbeatInterval);
+      APIConfig_SetPerformanceSyncInterval(API_PerfSyncInterval);
+
+      // Validate configuration
+      if(!APIConfig_Validate()) {
+         Print("⚠ API Configuration validation failed - check your settings");
+         Print("  Dashboard integration will be disabled");
+         APIConfig_SetOfflineMode(true);
+      } else {
+         // Initialize authentication
+         BotAuth_Init();
+
+         // Authenticate with backend
+         if(BotAuth_Authenticate()) {
+            Print("✓ Authenticated with backend API");
+
+            // Initialize sync modules
+            TradeSync_Init();
+            Heartbeat_Init();
+            PerformanceSync_Init();
+
+            // Send initial heartbeat
+            Heartbeat_SendNow();
+
+            // Sync existing trades
+            int syncedTrades = TradeSync_SyncExistingTrades();
+            if(syncedTrades > 0) {
+               Print("✓ Synced ", syncedTrades, " existing trades to backend");
+            }
+
+            // Send initial performance snapshot
+            PerformanceSync_SendNow();
+
+            Print("╔════════════════════════════════════════╗");
+            Print("║  BACKEND API INTEGRATION ACTIVE!      ║");
+            Print("║  ✓ Authentication                     ║");
+            Print("║  ✓ Trade Sync                         ║");
+            Print("║  ✓ Heartbeat Monitoring               ║");
+            Print("║  ✓ Performance Metrics                ║");
+            Print("║  📊 Dashboard: LIVE DATA ENABLED      ║");
+            Print("╚════════════════════════════════════════╝\n");
+         } else {
+            Print("✗ Backend authentication failed");
+            Print("  Dashboard will show offline status");
+         }
+      }
+   } else {
+      if(BacktestMode) {
+         Print("⚠ API Sync disabled in backtest mode");
+      } else {
+         Print("⚠ API Sync disabled by parameter");
+      }
+   }
+
+   // ════════════════════════════════════════════════════════════════
    // PHASE 1 + PHASE 2: INITIALIZE ADVANCED MODULES
    // ════════════════════════════════════════════════════════════════
    Print("╔════════════════════════════════════════╗");
@@ -595,6 +698,22 @@ int OnInit() {
 //--------------------------------------------------------------------
 void OnDeinit(const int reason) {
    Print("Smart Stock Trader shutting down...");
+
+   // Shutdown API integration modules
+   if(API_EnableSync && !BacktestMode) {
+      Print("Shutting down API integration modules...");
+
+      PerformanceSync_Shutdown();
+      Heartbeat_Shutdown();
+      TradeSync_Shutdown();
+      BotAuth_Shutdown();
+      Logger_Shutdown();
+      WebAPI_Shutdown();
+      APIConfig_Shutdown();
+
+      Print("✓ API modules shut down");
+   }
+
    ObjectsDeleteAll(0, "SST_", 0, OBJ_LABEL);
 }
 
@@ -602,6 +721,17 @@ void OnDeinit(const int reason) {
 // ON TICK
 //--------------------------------------------------------------------
 void OnTick() {
+   // ════════════════════════════════════════════════════════════════
+   // PHASE 4: UPDATE BACKEND SYNC MODULES
+   // ════════════════════════════════════════════════════════════════
+   if(API_EnableSync && !BacktestMode) {
+      // Update heartbeat timer
+      Heartbeat_Update();
+
+      // Update performance sync timer
+      PerformanceSync_Update();
+   }
+
    // ════════════════════════════════════════════════════════════════
    // PHASE 2: UPDATE DRAWDOWN PROTECTION (Every tick)
    // ════════════════════════════════════════════════════════════════
@@ -615,6 +745,11 @@ void OnTick() {
       g_DailyWins = 0;
       g_DailyLosses = 0;
       Print("New day - daily stats reset");
+
+      // Send performance snapshot on new day
+      if(API_EnableSync && !BacktestMode) {
+         PerformanceSync_SendNow();
+      }
    }
 
    // Update dashboard every 10 ticks
@@ -720,6 +855,24 @@ void OnTick() {
                      g_DailyLosses++;
                      g_TotalLosses++;
                      g_TotalLoss += MathAbs(orderProfit);
+                  }
+
+                  // ════════════════════════════════════════════════════════════════
+                  // PHASE 4: SYNC TRADE CLOSE TO BACKEND API
+                  // ════════════════════════════════════════════════════════════════
+                  if(API_EnableSync && !BacktestMode) {
+                     // Get commission and swap from order (before it's closed)
+                     double commission = OrderCommission();
+                     double swap = OrderSwap();
+
+                     TradeSync_SendTradeClose(
+                        existingTicket,
+                        closePrice,
+                        orderProfit,
+                        commission,
+                        swap,
+                        TimeCurrent()
+                     );
                   }
                }
             }
@@ -919,6 +1072,25 @@ void ExecuteTrade(string symbol, bool isBuy) {
 
       if(VerboseLogging) {
          Print("✓ Trade #", g_DailyTrades, " of max ", MaxDailyTrades, " today");
+      }
+
+      // ════════════════════════════════════════════════════════════════
+      // PHASE 4: SYNC TRADE TO BACKEND API
+      // ════════════════════════════════════════════════════════════════
+      if(API_EnableSync && !BacktestMode) {
+         string strategy = "Multi-Strategy"; // Could be dynamically determined
+         TradeSync_SendTradeOpen(
+            ticket,
+            symbol,
+            isBuy,
+            lotSize,
+            price,
+            sl,
+            tp,
+            strategy,
+            TimeCurrent(),
+            "Opened by SmartStockTrader EA"
+         );
       }
 
       if(SendNotifications) {

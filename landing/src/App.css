@@ -5,14 +5,14 @@
 }
 
 :root {
-  --bg-primary: #0a0e27;
-  --bg-secondary: rgba(24, 24, 27, 0.6);
+  --bg-primary: #0f0f0f;
+  --bg-secondary: #1a1a1a;
   --text-primary: #fafafa;
   --text-secondary: #a1a1aa;
   --text-muted: #71717a;
   --accent-green: #22c55e;
   --accent-blue: #3b82f6;
-  --border-color: rgba(255, 255, 255, 0.1);
+  --border-color: rgba(255, 255, 255, 0.08);
   --scroll-y: 0px;
   --scroll-y-features: 0px;
   --scroll-y-title: 0px;
@@ -175,7 +175,7 @@ body {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  opacity: 0.35;
+  opacity: 0.12;
   z-index: 0;
   will-change: transform;
   transform: translateY(var(--scroll-y));
@@ -188,8 +188,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at 30% 50%, rgba(255, 127, 0, 0.15) 0%, transparent 60%),
-              linear-gradient(135deg, rgba(10, 14, 39, 0.7) 0%, rgba(10, 14, 39, 0.85) 100%);
+  background: linear-gradient(180deg, rgba(15, 15, 15, 0.8) 0%, rgba(15, 15, 15, 0.95) 100%);
   z-index: 0;
 }
 
@@ -396,29 +395,29 @@ body {
 .gradient-orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.6;
+  filter: blur(100px);
+  opacity: 0.15;
   pointer-events: none;
   z-index: 0;
-  animation: float 8s ease-in-out infinite;
+  animation: float 12s ease-in-out infinite;
 }
 
 .orb-1 {
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(255, 127, 0, 0.3) 0%, transparent 70%);
-  top: -100px;
-  left: -100px;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(255, 127, 0, 0.4) 0%, transparent 70%);
+  top: -150px;
+  left: -150px;
   animation-delay: 0s;
 }
 
 .orb-2 {
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.25) 0%, transparent 70%);
-  bottom: -50px;
-  right: -50px;
-  animation-delay: 2s;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%);
+  bottom: -100px;
+  right: -100px;
+  animation-delay: 3s;
 }
 
 @keyframes float {
@@ -435,12 +434,12 @@ body {
   right: 0;
   bottom: 0;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 50px 50px;
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 60px 60px;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.5;
+  opacity: 0.3;
 }
 
 /* Hero Tagline */
@@ -1095,13 +1094,13 @@ body {
   padding: 60px 80px;
   margin-bottom: 0;
   position: relative;
-  background: rgba(24, 24, 27, 0.3);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
   transition: all 0.4s ease;
 }
 
 .tesla-feature-card:hover {
-  background: rgba(24, 24, 27, 0.5);
+  background: rgba(26, 26, 26, 0.4);
 }
 
 .tesla-feature-card.layout-right {
@@ -1125,16 +1124,16 @@ body {
 
 .visual-container {
   width: 100%;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 20px;
+  background: rgba(18, 18, 18, 0.6);
+  border-radius: 16px;
   padding: 40px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   transition: all 0.4s ease;
 }
 
 .tesla-feature-card:hover .visual-container {
-  border-color: rgba(255, 127, 0, 0.3);
-  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 127, 0, 0.2);
+  background: rgba(26, 26, 26, 0.8);
 }
 
 .tesla-visual {

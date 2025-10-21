@@ -54,8 +54,8 @@ extern bool    SendNotifications     = false;
 
 //=== BACKEND API INTEGRATION PARAMETERS ===
 extern string  API_BaseURL           = "http://localhost:5000";     // Backend API base URL
-extern string  API_UserEmail         = "";                           // User email for authentication
-extern string  API_UserPassword      = "";                           // User password for authentication
+extern string  API_UserEmail         = "Ifrey2heavens@gmail.com";                           // User email for authentication
+extern string  API_UserPassword      = "!bv2000gee4A!";                           // User password for authentication
 extern bool    API_EnableSync        = true;                        // Master switch for API synchronization
 extern bool    API_EnableTradeSync   = true;                        // Sync trades to backend
 extern bool    API_EnableHeartbeat   = true;                        // Send heartbeat signals

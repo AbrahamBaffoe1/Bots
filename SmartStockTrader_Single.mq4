@@ -9,7 +9,7 @@
 #property description "Professional stock trading EA - Single file version"
 
 //--------------------------------------------------------------------
-// PHASE 1 + PHASE 2 MODULE INCLUDES (Production-Grade Enhancement)
+// PHASE 1 + PHASE 2 + PHASE 3 MODULE INCLUDES (AI/ML Enhancement)
 //--------------------------------------------------------------------
 #include <SST_NewsFilter.mqh>
 #include <SST_CorrelationMatrix.mqh>
@@ -17,6 +17,7 @@
 #include <SST_DrawdownProtection.mqh>
 #include <SST_MultiAsset.mqh>
 #include <SST_ExitOptimization.mqh>
+#include <SST_MachineLearning.mqh>        // PHASE 3: AI/ML Module
 
 //--------------------------------------------------------------------
 // LICENSE PARAMETERS
@@ -533,8 +534,19 @@ int OnInit() {
    // 6. Exit Optimization - Already self-contained (no init needed)
    Print("✓ Exit Optimization module ready");
 
+   // 7. Machine Learning - PHASE 3: AI-powered predictions
+   ML_Initialize();
+   Print("✓ Machine Learning module initialized");
+
    Print("╔════════════════════════════════════════╗");
-   Print("║    ALL PHASE 1+2 MODULES ACTIVE!      ║");
+   Print("║  ALL PHASE 1+2+3 MODULES ACTIVE!      ║");
+   Print("║  ✓ News Filter (Live API)             ║");
+   Print("║  ✓ Correlation Matrix                 ║");
+   Print("║  ✓ Advanced Volatility                ║");
+   Print("║  ✓ Drawdown Protection                ║");
+   Print("║  ✓ Multi-Asset Confirmation           ║");
+   Print("║  ✓ Exit Optimization                  ║");
+   Print("║  🤖 Machine Learning (NEW!)           ║");
    Print("╚════════════════════════════════════════╝\n");
 
    // If Stocks is empty or BacktestMode, use current chart symbol
@@ -744,13 +756,51 @@ void OnTick() {
          continue;
       }
 
-      // Check for signals
+      // ════════════════════════════════════════════════════════════════
+      // PHASE 3: MACHINE LEARNING SIGNAL DETECTION
+      // ════════════════════════════════════════════════════════════════
+      bool mlSignal = false;
+      bool mlIsBullish = false;
+      double mlConfidence = 0.0;
+
+      if(UseMLPredictions) {
+         mlSignal = ML_GetTradingSignal(symbol, PERIOD_H1, mlIsBullish, mlConfidence);
+      }
+
+      // Check for traditional signals
       bool buySignal = GetBuySignal(symbol);
       bool sellSignal = GetSellSignal(symbol);
 
-      if(buySignal || sellSignal) {
-         bool isBuy = buySignal;
+      // Combine ML with traditional signals
+      bool hasSignal = false;
+      bool isBuy = false;
 
+      if(mlSignal && (buySignal || sellSignal)) {
+         // Both ML and traditional agree!
+         bool traditionalIsBuy = buySignal;
+         if(mlIsBullish == traditionalIsBuy) {
+            hasSignal = true;
+            isBuy = mlIsBullish;
+            if(VerboseLogging) {
+               Print("🎯 STRONG SIGNAL: ML + Traditional agree! (", (isBuy ? "BUY" : "SELL"),
+                     " confidence: ", DoubleToString(mlConfidence, 1), "%)");
+            }
+         }
+      } else if(mlSignal && mlConfidence >= MLConfidenceThreshold) {
+         // ML signal alone is strong enough
+         hasSignal = true;
+         isBuy = mlIsBullish;
+         if(VerboseLogging) {
+            Print("🤖 ML SIGNAL: ", (isBuy ? "BUY" : "SELL"),
+                  " (confidence: ", DoubleToString(mlConfidence, 1), "%)");
+         }
+      } else if(buySignal || sellSignal) {
+         // Traditional signal alone
+         hasSignal = true;
+         isBuy = buySignal;
+      }
+
+      if(hasSignal) {
          // Filter: SPY Trend Confirmation (Quick Win)
          if(!CheckSPYTrendFilter(isBuy)) continue;
 

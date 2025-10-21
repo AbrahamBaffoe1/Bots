@@ -55,23 +55,25 @@ void News_InitializeCalendar() {
 }
 
 //--------------------------------------------------------------------
-// FETCH LIVE CALENDAR DATA (Investing.com Economic Calendar)
+// FETCH LIVE CALENDAR DATA (ForexFactory JSON API - FREE)
 //--------------------------------------------------------------------
 bool News_FetchLiveCalendar() {
-   // Use WebRequest to fetch economic calendar
-   // Note: User must add "https://www.investing.com" to allowed URLs in MT4
+   // Use WebRequest to fetch economic calendar from ForexFactory
+   // Note: User must add "https://nfs.faireconomy.media" to allowed URLs in MT4
    // Tools → Options → Expert Advisors → Allow WebRequest for listed URL
+   // Add this URL: https://nfs.faireconomy.media
 
-   string url = "https://www.investing.com/economic-calendar/";
+   string url = "https://nfs.faireconomy.media/ff_calendar_thisweek.json";
    string cookie = NULL;
    string referer = NULL;
-   int timeout = 5000;  // 5 seconds
+   int timeout = 10000;  // 10 seconds
 
    char postData[];
    char resultData[];
    string resultHeaders;
 
-   Print("📡 Fetching live economic calendar from Investing.com...");
+   Print("📡 Fetching live economic calendar from ForexFactory API...");
+   Print("   URL: ", url);
 
    int res = WebRequest(
       "GET",
@@ -88,8 +90,10 @@ bool News_FetchLiveCalendar() {
    if(res == -1) {
       int error = GetLastError();
       if(error == 4060) {
-         Print("❌ WebRequest error: URL not allowed. Add 'https://www.investing.com' to allowed URLs:");
+         Print("❌ WebRequest error: URL not allowed.");
+         Print("   SOLUTION: Add this URL to allowed list in MT4:");
          Print("   Tools → Options → Expert Advisors → Allow WebRequest for listed URL");
+         Print("   Add: https://nfs.faireconomy.media");
       } else {
          Print("❌ WebRequest failed with error: ", error);
       }
@@ -97,70 +101,138 @@ bool News_FetchLiveCalendar() {
    }
 
    if(res == 200) {
-      // Parse HTML response
-      string html = CharArrayToString(resultData);
+      // Parse JSON response
+      string json = CharArrayToString(resultData);
 
-      // Simple parsing for high-impact events (this is basic, production would use proper HTML parser)
-      if(News_ParseInvestingHTML(html)) {
-         Print("✅ Live calendar loaded successfully (", g_EventCount, " events)");
+      if(StringLen(json) < 10) {
+         Print("⚠ Empty response from ForexFactory API");
+         return false;
+      }
+
+      if(VerboseLogging) Print("✓ Received ", StringLen(json), " bytes of calendar data");
+
+      // Parse JSON for high-impact events
+      if(News_ParseForexFactoryJSON(json)) {
+         Print("✅ Live calendar loaded successfully from ForexFactory (", g_EventCount, " events)");
          return true;
       }
+   } else {
+      Print("⚠ HTTP error ", res, " from ForexFactory API");
    }
 
-   Print("⚠ Failed to parse live calendar data");
+   Print("⚠ Failed to parse live calendar data - using fallback");
    return false;
 }
 
 //--------------------------------------------------------------------
-// PARSE INVESTING.COM HTML (Simplified)
+// PARSE FOREXFACTORY JSON (Production-Ready)
 //--------------------------------------------------------------------
-bool News_ParseInvestingHTML(string html) {
-   // This is a simplified parser
-   // Production version would use proper HTML/JSON parsing
-
-   // Look for high-impact events in the next 7 days
-   // Investing.com uses class "sentiment" with bulls for high impact
+bool News_ParseForexFactoryJSON(string json) {
+   // ForexFactory JSON format:
+   // [{"title":"Non-Farm Employment Change","country":"USD","date":"2025-01-10T13:30:00-05:00","impact":"High",...}]
 
    int eventsFound = 0;
+   datetime currentTime = TimeCurrent();
 
-   // Major US economic indicators to look for
-   string importantEvents[] = {
-      "Non-Farm Employment Change",
-      "Non-Farm Payrolls",
-      "Unemployment Rate",
-      "FOMC Statement",
-      "Federal Funds Rate",
-      "CPI",
-      "Core CPI",
-      "Retail Sales",
-      "GDP",
-      "ISM Manufacturing PMI",
-      "Consumer Confidence",
-      "PPI",
-      "JOLTS Job Openings",
-      "ADP Non-Farm Employment Change"
-   };
+   // Simple JSON parsing (MQL4 doesn't have native JSON parser)
+   // Look for event objects in the array
 
-   // Search for each event in HTML
-   for(int i = 0; i < ArraySize(importantEvents); i++) {
-      if(StringFind(html, importantEvents[i]) >= 0) {
-         // Event found - add placeholder (proper parser would extract time/date)
-         // For now, add as upcoming event
-         News_AddEvent(
-            TimeCurrent() + 86400,  // Tomorrow (placeholder)
-            importantEvents[i],
-            "USD",
-            3  // High impact
-         );
-         eventsFound++;
+   int startPos = 0;
+   while(true) {
+      // Find next event object
+      int objStart = StringFind(json, "{\"title\":", startPos);
+      if(objStart < 0) break;
 
-         if(VerboseLogging) {
-            Print("   Found: ", importantEvents[i]);
+      int objEnd = StringFind(json, "}", objStart);
+      if(objEnd < 0) break;
+
+      // Extract this event object
+      string eventObj = StringSubstr(json, objStart, objEnd - objStart + 1);
+
+      // Parse title
+      string title = News_ExtractJSONValue(eventObj, "title");
+
+      // Parse country
+      string country = News_ExtractJSONValue(eventObj, "country");
+
+      // Parse impact
+      string impactStr = News_ExtractJSONValue(eventObj, "impact");
+
+      // Parse date (ISO 8601 format: "2025-01-10T13:30:00-05:00")
+      string dateStr = News_ExtractJSONValue(eventObj, "date");
+
+      // Only process USD high-impact events
+      if(country == "USD" && impactStr == "High") {
+         // Convert ISO date to MT4 datetime
+         datetime eventTime = News_ParseISODate(dateStr);
+
+         // Only add future events (within next 7 days)
+         if(eventTime > currentTime && eventTime < currentTime + (7 * 86400)) {
+            News_AddEvent(eventTime, title, country, 3);  // 3 = High impact
+            eventsFound++;
+
+            if(VerboseLogging) {
+               Print("   ✓ ", title, " at ", TimeToString(eventTime, TIME_DATE|TIME_MINUTES));
+            }
          }
       }
+
+      startPos = objEnd + 1;
+
+      // Safety limit: max 100 events
+      if(eventsFound >= 100) break;
+   }
+
+   if(VerboseLogging) {
+      Print("   Parsed ", eventsFound, " high-impact USD events from ForexFactory");
    }
 
    return (eventsFound > 0);
+}
+
+//--------------------------------------------------------------------
+// HELPER: Extract JSON value by key
+//--------------------------------------------------------------------
+string News_ExtractJSONValue(string json, string key) {
+   string searchStr = "\"" + key + "\":\"";
+   int startPos = StringFind(json, searchStr);
+
+   if(startPos < 0) return "";
+
+   startPos += StringLen(searchStr);
+   int endPos = StringFind(json, "\"", startPos);
+
+   if(endPos < 0) return "";
+
+   return StringSubstr(json, startPos, endPos - startPos);
+}
+
+//--------------------------------------------------------------------
+// HELPER: Parse ISO 8601 date to MT4 datetime
+//--------------------------------------------------------------------
+datetime News_ParseISODate(string isoDate) {
+   // Format: "2025-01-10T13:30:00-05:00"
+   // Convert to MT4 format: "2025.01.10 13:30"
+
+   if(StringLen(isoDate) < 19) return 0;
+
+   // Extract components
+   string year = StringSubstr(isoDate, 0, 4);
+   string month = StringSubstr(isoDate, 5, 2);
+   string day = StringSubstr(isoDate, 8, 2);
+   string hour = StringSubstr(isoDate, 11, 2);
+   string minute = StringSubstr(isoDate, 14, 2);
+
+   // Build MT4 datetime string
+   string mt4DateStr = year + "." + month + "." + day + " " + hour + ":" + minute;
+
+   datetime result = StrToTime(mt4DateStr);
+
+   if(VerboseLogging && result > 0) {
+      Print("   Parsed date: ", isoDate, " → ", TimeToString(result, TIME_DATE|TIME_MINUTES));
+   }
+
+   return result;
 }
 
 //--------------------------------------------------------------------

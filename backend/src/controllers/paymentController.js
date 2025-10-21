@@ -1,7 +1,6 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { License, User } = require('../models');
 const crypto = require('crypto');
-const bcrypt = require('bcrypt');
 const emailService = require('../utils/emailService');
 
 // Plan pricing configuration
@@ -50,7 +49,6 @@ exports.createCheckoutSession = async (req, res) => {
       if (!user) {
         // Generate secure password
         password = crypto.randomBytes(8).toString('hex'); // 16 character password
-        const hashedPassword = await bcrypt.hash(password, 10);
 
         // Extract name from email
         const emailName = customer_email.split('@')[0];
@@ -58,10 +56,10 @@ exports.createCheckoutSession = async (req, res) => {
         const firstName = nameParts[0] ? nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1) : 'User';
         const lastName = nameParts[1] ? nameParts[1].charAt(0).toUpperCase() + nameParts[1].slice(1) : 'Trial';
 
-        // Create user account
+        // Create user account (password will be auto-hashed by User model beforeCreate hook)
         user = await User.create({
           email: customer_email,
-          password_hash: hashedPassword,
+          password_hash: password, // User model will hash this automatically
           first_name: firstName,
           last_name: lastName,
           email_verified: true, // Auto-verify trial users

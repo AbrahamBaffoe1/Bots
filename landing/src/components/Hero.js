@@ -146,10 +146,11 @@ const Hero = ({ scrollYProgress, onLoginClick }) => {
           >
             <div className="trust-item">
               <div className="user-avatars">
-                <div className="avatar" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}></div>
-                <div className="avatar" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}></div>
-                <div className="avatar" style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}></div>
-                <div className="avatar" style={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' }}></div>
+                <div className="avatar" style={{ backgroundImage: 'url(https://randomuser.me/api/portraits/men/32.jpg)' }}></div>
+                <div className="avatar" style={{ backgroundImage: 'url(https://randomuser.me/api/portraits/women/44.jpg)' }}></div>
+                <div className="avatar" style={{ backgroundImage: 'url(https://randomuser.me/api/portraits/men/46.jpg)' }}></div>
+                <div className="avatar" style={{ backgroundImage: 'url(https://randomuser.me/api/portraits/women/68.jpg)' }}></div>
+                <div className="avatar" style={{ backgroundImage: 'url(https://randomuser.me/api/portraits/men/22.jpg)' }}></div>
               </div>
               <span className="trust-text">Trusted by <strong>{userCount.toLocaleString()}+</strong> traders</span>
             </div>

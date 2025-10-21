@@ -364,7 +364,7 @@ exports.getAllLogs = async (req, res) => {
       include: [
         {
           model: BotInstance,
-          as: 'bot',
+          as: 'botInstance',
           attributes: ['id', 'instance_name', 'mt4_account'],
           include: [{
             model: User,

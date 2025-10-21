@@ -143,36 +143,38 @@ const AdminDashboard = () => {
         </div>
       </header>
 
-      {/* Navigation Tabs */}
-      <nav className="admin-tabs">
-        <button
-          className={activeTab === 'overview' ? 'active' : ''}
-          onClick={() => setActiveTab('overview')}
-        >
-          📊 Overview
-        </button>
-        <button
-          className={activeTab === 'users' ? 'active' : ''}
-          onClick={() => setActiveTab('users')}
-        >
-          👥 Users ({users.length})
-        </button>
-        <button
-          className={activeTab === 'bots' ? 'active' : ''}
-          onClick={() => setActiveTab('bots')}
-        >
-          🤖 Bots ({bots.length})
-        </button>
-        <button
-          className={activeTab === 'logs' ? 'active' : ''}
-          onClick={() => setActiveTab('logs')}
-        >
-          📋 Logs
-        </button>
-      </nav>
+      {/* Dashboard Container with Sidebar and Content */}
+      <div className="admin-dashboard-container">
+        {/* Navigation Tabs (Sidebar) */}
+        <nav className="admin-tabs">
+          <button
+            className={activeTab === 'overview' ? 'active' : ''}
+            onClick={() => setActiveTab('overview')}
+          >
+            📊 Overview
+          </button>
+          <button
+            className={activeTab === 'users' ? 'active' : ''}
+            onClick={() => setActiveTab('users')}
+          >
+            👥 Users ({users.length})
+          </button>
+          <button
+            className={activeTab === 'bots' ? 'active' : ''}
+            onClick={() => setActiveTab('bots')}
+          >
+            🤖 Bots ({bots.length})
+          </button>
+          <button
+            className={activeTab === 'logs' ? 'active' : ''}
+            onClick={() => setActiveTab('logs')}
+          >
+            📋 Logs
+          </button>
+        </nav>
 
-      {/* Content */}
-      <div className="admin-content">
+        {/* Content */}
+        <div className="admin-content">
         {/* Overview Tab */}
         {activeTab === 'overview' && stats && (
           <div className="overview-section">
@@ -347,9 +349,9 @@ const AdminDashboard = () => {
                     </span>
                   </div>
                   <div className="log-message">{log.message}</div>
-                  {log.bot && (
+                  {log.botInstance && (
                     <div className="log-bot-info">
-                      Bot: {log.bot.instance_name} ({log.bot.mt4_account}) - User: {log.bot.user?.email}
+                      Bot: {log.botInstance.instance_name} ({log.botInstance.mt4_account}) - User: {log.botInstance.user?.email}
                     </div>
                   )}
                 </div>
@@ -357,6 +359,7 @@ const AdminDashboard = () => {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

@@ -40,6 +40,7 @@ extern bool    ShowDashboard         = true;
 extern bool    SendNotifications     = false;
 
 // Session Settings
+extern bool    Trade24_7             = true;                         // Trade 24/7 with no time restrictions (recommended for live trading)
 extern bool    TradePreMarket        = false;
 extern bool    TradeRegularHours     = true;
 extern bool    TradeAfterHours       = false;
@@ -229,6 +230,12 @@ int ParseSymbols(string symbolList, string &output[]) {
 bool IsTradingTime() {
    // In backtest mode, trade 24/7
    if(BacktestMode) {
+      return true;
+   }
+
+   // If Trade24_7 is enabled, trade anytime (no restrictions)
+   if(Trade24_7) {
+      if(VerboseLogging) Print("✓ Trade24_7 enabled - trading allowed at any time");
       return true;
    }
 
@@ -551,12 +558,23 @@ int OnInit() {
       VerboseLogging = true;  // Force verbose logging in backtest mode
    }
 
+   // Display 24/7 trading status
+   if(Trade24_7 && !BacktestMode) {
+      Print("╔════════════════════════════════════════╗");
+      Print("║    24/7 TRADING MODE ENABLED          ║");
+      Print("║  - No time restrictions               ║");
+      Print("║  - Trades at ANY time (even 11PM!)    ║");
+      Print("║  - Weekend trading if broker allows   ║");
+      Print("╚════════════════════════════════════════╝");
+   }
+
    g_DailyStartTime = TimeCurrent();
    g_DailyStartEquity = AccountEquity();
 
    UpdateDashboard();
 
    Print("=== INITIALIZATION COMPLETE ===");
+   Print("Trading Time: ", TimeToString(TimeCurrent(), TIME_DATE|TIME_MINUTES));
    return(INIT_SUCCEEDED);
 }
 

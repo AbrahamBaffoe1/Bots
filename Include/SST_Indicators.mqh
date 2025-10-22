@@ -71,7 +71,7 @@ double Ind_CalculateVWAP(string symbol, int timeframe) {
 
    for(int i = 0; i < barsSinceOpen; i++) {
       double typical = (iHigh(symbol, timeframe, i) + iLow(symbol, timeframe, i) + iClose(symbol, timeframe, i)) / 3.0;
-      double vol = iVolume(symbol, timeframe, i);
+      double vol = (double)iVolume(symbol, timeframe, i);
 
       sumPV += typical * vol;
       sumV += vol;
@@ -93,7 +93,7 @@ double Ind_CalculateOBV(string symbol, int timeframe, int period) {
    for(int i = period - 1; i >= 0; i--) {
       double close = iClose(symbol, timeframe, i);
       double prevClose = iClose(symbol, timeframe, i + 1);
-      double volume = iVolume(symbol, timeframe, i);
+      double volume = (double)iVolume(symbol, timeframe, i);
 
       if(close > prevClose) {
          obv += volume;
@@ -145,10 +145,10 @@ IndicatorSignals Ind_GetSignals(string symbol, int timeframe) {
    signals.adxMinus = iADX(symbol, timeframe, ADX_Period, PRICE_CLOSE, MODE_MINUSDI, 0);
 
    // Volume
-   signals.volume = iVolume(symbol, timeframe, 0);
+   signals.volume = (double)iVolume(symbol, timeframe, 0);
    signals.volumeMA = 0;
    for(int i = 0; i < VolumeMA_Period; i++) {
-      signals.volumeMA += iVolume(symbol, timeframe, i);
+      signals.volumeMA += (double)iVolume(symbol, timeframe, i);
    }
    signals.volumeMA /= VolumeMA_Period;
    signals.obv = Ind_CalculateOBV(symbol, timeframe, 50);

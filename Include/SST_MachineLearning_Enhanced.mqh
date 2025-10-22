@@ -252,10 +252,7 @@ void ML_ForwardPass(
    double &output[]              // Output: [BUY, SELL, NEUTRAL] probabilities
 ) {
    // Hidden layer activations (initialize)
-   double hidden[20];
-   for(int h = 0; h < 20; h++) {
-      hidden[h] = 0.0;
-   }
+   double hidden[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
    // Layer 1: Input → Hidden
    for(int h = 0; h < 20; h++) {
@@ -267,10 +264,7 @@ void ML_ForwardPass(
    }
 
    // Layer 2: Hidden → Output (initialize)
-   double rawOutput[3];
-   for(int o = 0; o < 3; o++) {
-      rawOutput[o] = 0.0;
-   }
+   double rawOutput[3] = {0,0,0};
 
    for(int o = 0; o < 3; o++) {
       double activation = biasO[o];
@@ -365,7 +359,8 @@ void ML_TrainOnHistory(
          }
 
          // Forward pass (save hidden layer for backprop)
-         double hidden[20];
+         double hidden[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
          for(int h = 0; h < 20; h++) {
             double activation = biasH[h];
             for(int i = 0; i < 30; i++) {
@@ -375,8 +370,9 @@ void ML_TrainOnHistory(
          }
 
          // Output layer
-         double output[3];
-         double rawOutput[3];
+         double output[3] = {0,0,0};
+         double rawOutput[3] = {0,0,0};
+
          for(int o = 0; o < 3; o++) {
             double activation = biasO[o];
             for(int h = 0; h < 20; h++) {
@@ -391,7 +387,7 @@ void ML_TrainOnHistory(
          }
 
          // Calculate output error
-         double outputError[3];
+         double outputError[3] = {0,0,0};
          for(int o = 0; o < 3; o++) {
             outputError[o] = target[o] - output[o];
          }
@@ -412,9 +408,8 @@ void ML_TrainOnHistory(
          }
 
          // Calculate hidden layer error (backpropagate)
-         double hiddenError[20];
+         double hiddenError[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
          for(int h = 0; h < 20; h++) {
-            hiddenError[h] = 0.0;
             for(int o = 0; o < 3; o++) {
                hiddenError[h] += outputError[o] * weightsHO[h][o];
             }

@@ -1,0 +1,117 @@
+; Smart Stock Trader - OPTIMIZED BACKTEST SETTINGS
+; Copy these values into MetaTrader EA settings
+; Updated: 2025-10-22
+
+; ═══════════════════════════════════════════════════════════
+; CRITICAL FIXES (Change these FIRST!)
+; ═══════════════════════════════════════════════════════════
+BacktestMode=true              ; ✅ MUST BE TRUE for backtesting!
+VerboseLogging=true            ; ✅ See why trades are blocked
+EnableTrading=true             ; ✅ Enable trading
+
+; ═══════════════════════════════════════════════════════════
+; ML SETTINGS (Relaxed for better trade frequency)
+; ═══════════════════════════════════════════════════════════
+UseMLPredictions=true
+UseDeepLearning=true
+MLTrainingPeriod=100           ; ✅ Reduced from 500 (faster training on M5)
+MLConfidenceThreshold=55.0     ; ✅ Reduced from 60 (more trades)
+UseAdaptiveLearning=true
+UseFeatureScaling=true
+MLLearningRate=0.001
+
+; ML RISK MANAGEMENT (NEW!)
+UseMLRiskManagement=true       ; ✅ Enable dynamic SL/TP
+MLHighConfThreshold=75.0
+MLLowConfThreshold=60.0
+MLHighConfTPMultiplier=1.2
+MLLowConfSLMultiplier=0.8
+
+; ═══════════════════════════════════════════════════════════
+; 3-CONFLUENCE SNIPER (Relaxed)
+; ═══════════════════════════════════════════════════════════
+Use3ConfluenceSniper=true
+MinRoomToTargetRR=3.0          ; ✅ Reduced from 5.0 (less strict)
+MinVolumeMultiplier=1.5
+D1_MA_Period=200
+H4_MA_Period=50
+H1_Fast_MA=10
+H1_Slow_MA=50
+
+; ═══════════════════════════════════════════════════════════
+; FILTERS (Disable unnecessary ones for testing)
+; ═══════════════════════════════════════════════════════════
+UseCorrelationFilter=false     ; ✅ Not needed for single symbol
+UseMultiAssetFilter=false      ; ✅ Not needed for single symbol
+UseSPYTrendFilter=false        ; ✅ Disable for testing
+UseNewsFilter=false            ; ✅ Disable for testing
+UseTimeOfDayFilter=false       ; ✅ Disable for testing (backtests trade 24/7 anyway)
+
+; KEEP THESE ENABLED
+UseVolatilityRegime=true
+UseMarketStructure=true
+UseSupportResistance=true
+UseDrawdownProtection=true
+
+; ═══════════════════════════════════════════════════════════
+; RISK MANAGEMENT
+; ═══════════════════════════════════════════════════════════
+RiskPercentPerTrade=1.0
+MaxDailyLossPercent=5.0
+UseATRStops=true
+ATRMultiplierSL=1.5            ; Tight stop (Phase 2)
+ATRMultiplierTP=6.0            ; Wide target (4:1 R:R)
+
+; Smart Scaling (Phase 2)
+UseSmartScaling=true
+PartialClosePercent=25.0
+PartialCloseRRRatio=2.0
+MoveToBreakeven=true
+
+; ═══════════════════════════════════════════════════════════
+; TRADING HOURS (Backtest trades 24/7 when BacktestMode=true)
+; ═══════════════════════════════════════════════════════════
+Trade24_7=true
+TradePreMarket=false
+TradeRegularHours=true
+TradeAfterHours=false
+
+; ═══════════════════════════════════════════════════════════
+; API SETTINGS (Disable for backtesting)
+; ═══════════════════════════════════════════════════════════
+API_EnableSync=false           ; ✅ Disable API in backtest
+API_EnableTradeSync=false
+API_EnableHeartbeat=false
+API_EnablePerfSync=false
+
+; ═══════════════════════════════════════════════════════════
+; SYMBOL SETTINGS
+; ═══════════════════════════════════════════════════════════
+Stocks=GOOGL                   ; ✅ Single symbol for testing
+; Or use multiple: Stocks=AAPL,MSFT,GOOGL,AMZN,TSLA
+
+; ═══════════════════════════════════════════════════════════
+; ADVANCED SETTINGS (Keep defaults)
+; ═══════════════════════════════════════════════════════════
+MagicNumber=555777
+MaxDailyTrades=10
+MinMinutesBetweenTrades=15
+MaxSpreadPips=2.0
+
+; ═══════════════════════════════════════════════════════════
+; INDICATOR PERIODS (Keep defaults)
+; ═══════════════════════════════════════════════════════════
+FastMA_Period=10
+SlowMA_Period=50
+RSI_Period=14
+ATR_Period=14
+WPR_Period=14
+
+; ═══════════════════════════════════════════════════════════
+; NOTES
+; ═══════════════════════════════════════════════════════════
+; 1. Always set BacktestMode=true for backtesting
+; 2. Start with these relaxed settings to verify trades execute
+; 3. Gradually re-enable filters after confirming it works
+; 4. Use H1 timeframe for more reliable signals
+; 5. Expected: 30-80 trades over 3-6 month backtest period

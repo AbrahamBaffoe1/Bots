@@ -327,16 +327,14 @@ void Logger_FlushBuffer() {
       return;
    }
 
-   // Check prerequisites
+   // Check prerequisites (silently clear buffer if not ready)
    if(!APIConfig_IsAuthenticated()) {
-      Logger_Debug(CAT_SYSTEM, "Cannot flush logs - not authenticated");
       Logger_ClearBuffer();
       return;
    }
 
    string botId = APIConfig_GetBotInstanceId();
    if(botId == "") {
-      Logger_Debug(CAT_SYSTEM, "Cannot flush logs - no bot ID");
       Logger_ClearBuffer();
       return;
    }

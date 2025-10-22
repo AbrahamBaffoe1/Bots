@@ -261,14 +261,14 @@ bool PerformanceSync_SendMetrics() {
    }
 
    if(!APIConfig_IsAuthenticated()) {
-      Logger_Error(CAT_PERFORMANCE, "Not authenticated - cannot sync performance");
+      // Silently skip if not authenticated (normal in backtest mode)
       return false;
    }
 
    string botId = APIConfig_GetBotInstanceId();
 
    if(botId == "") {
-      Logger_Error(CAT_PERFORMANCE, "Bot Instance ID not set - cannot sync performance");
+      // Silently skip if no bot ID
       return false;
    }
 

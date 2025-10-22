@@ -34,7 +34,7 @@
 //--------------------------------------------------------------------
 // LICENSE PARAMETERS
 //--------------------------------------------------------------------
-extern string  LicenseKey            = "SST-BASIC-X3EWSS-F2LSJW-766S";   // Your license key
+extern string  LicenseKey            = "SST-ENTERPRISE-W0674G-XF9XH9-89WA";   // Your license key
 extern datetime ExpirationDate       = D'2026.12.31 23:59:59';         // License expiration date
 extern string  AuthorizedAccounts    = "";                             // Comma-separated account numbers (leave empty for any account)
 extern bool    RequireLicenseKey     = true;                           // Set FALSE to disable license check for testing
@@ -45,8 +45,8 @@ extern bool    RequireLicenseKey     = true;                           // Set FA
 extern string  Stocks                = "AAPL,MSFT,GOOGL,AMZN,TSLA";  // Leave empty to use current chart symbol
 extern int     MagicNumber           = 555777;
 extern bool    EnableTrading         = true;
-extern bool    BacktestMode          = false;                        // Enable backtest features (24/7, verbose logs, no restrictions) - SET FALSE FOR LIVE
-extern bool    VerboseLogging        = false;                       // Detailed logs for debugging - SET FALSE FOR LIVE
+extern bool    BacktestMode          = true;                         // Enable backtest features (24/7, verbose logs, no restrictions) - SET FALSE FOR LIVE
+extern bool    VerboseLogging        = true;                         // Detailed logs for debugging - SET FALSE FOR LIVE
 extern double  RiskPercentPerTrade   = 1.0;
 extern double  MaxDailyLossPercent   = 5.0;
 extern bool    ShowDashboard         = true;

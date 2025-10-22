@@ -58,6 +58,23 @@ static datetime g_NextLogFlush = 0;
 static const int g_LogFlushIntervalSeconds = 30; // Flush logs every 30 seconds
 
 //--------------------------------------------------------------------
+// HELPER FUNCTIONS
+//--------------------------------------------------------------------
+// Simple JSON escape function for log messages
+string JSON_Escape(string str) {
+   string result = str;
+
+   // Replace special characters
+   StringReplace(result, "\\", "\\\\");  // Backslash must be first
+   StringReplace(result, "\"", "\\\"");  // Quotes
+   StringReplace(result, "\n", "\\n");   // Newline
+   StringReplace(result, "\r", "\\r");   // Carriage return
+   StringReplace(result, "\t", "\\t");   // Tab
+
+   return result;
+}
+
+//--------------------------------------------------------------------
 // INITIALIZATION
 //--------------------------------------------------------------------
 bool Logger_Init(

@@ -12,20 +12,33 @@
 #property description "Advanced Risk Management & Performance Analytics"
 
 //--------------------------------------------------------------------
+// BACKEND API CONFIGURATION
+//--------------------------------------------------------------------
+input string API_BaseURL = "http://localhost:5000";     // Backend API URL
+input string API_UserEmail = "";                         // Your account email
+input string API_UserPassword = "";                      // Your account password
+input bool API_EnableSync = true;                        // Enable backend sync
+
+//--------------------------------------------------------------------
 // INCLUDE ALL MODULES
 //--------------------------------------------------------------------
-#include "Include/SST_LicenseManager.mqh"
-#include "Include/SST_Config.mqh"
-#include "Include/SST_Logger.mqh"
-#include "Include/SST_SessionManager.mqh"
-#include "Include/SST_Indicators.mqh"
-#include "Include/SST_PatternRecognition.mqh"
-#include "Include/SST_MarketStructure.mqh"
-#include "Include/SST_RiskManager.mqh"
-#include "Include/SST_Strategies.mqh"
-#include "Include/SST_Analytics.mqh"
-#include "Include/SST_Dashboard.mqh"
-#include "Include/SST_HTMLDashboard.mqh"
+#include <SST_LicenseManager.mqh>
+#include <SST_Config.mqh>
+#include <SST_Logger.mqh>
+#include <SST_APIConfig.mqh>
+#include <SST_WebAPI.mqh>
+#include <SST_BotAuth.mqh>
+#include <SST_Heartbeat.mqh>
+#include <SST_PerformanceSync.mqh>
+#include <SST_SessionManager.mqh>
+#include <SST_Indicators.mqh>
+#include <SST_PatternRecognition.mqh>
+#include <SST_MarketStructure.mqh>
+#include <SST_RiskManager.mqh>
+#include <SST_Strategies.mqh>
+#include <SST_Analytics.mqh>
+#include <SST_Dashboard.mqh>
+#include <SST_HTMLDashboard.mqh>
 
 //--------------------------------------------------------------------
 // ON INIT
@@ -50,6 +63,39 @@ int OnInit() {
    Config_Init();
    Logger_Init(LOG_INFO, true, false, true); // Enable console + remote logging
    Logger_Info(CAT_SYSTEM, "SmartStockTrader EA v1.0 starting");
+
+   // Initialize API modules (if enabled)
+   if(API_EnableSync && API_UserEmail != "" && API_UserPassword != "") {
+      Logger_Info(CAT_SYSTEM, "Initializing backend API connection...");
+
+      // Initialize API Config
+      APIConfig_Init(API_BaseURL, API_UserEmail, API_UserPassword, true, true, true, false);
+
+      // Initialize WebAPI
+      WebAPI_Init();
+
+      // Authenticate with backend (login + register bot)
+      if(BotAuth_Authenticate()) {
+         Logger_Info(CAT_SYSTEM, "✓ Backend authentication successful");
+
+         // Initialize Heartbeat module
+         Heartbeat_Init();
+
+         // Initialize Performance Sync module
+         PerformanceSync_Init();
+
+         Logger_Info(CAT_SYSTEM, "✓ All API modules initialized");
+      } else {
+         Logger_Warn(CAT_SYSTEM, "✗ Backend authentication failed - EA will run in offline mode");
+      }
+   } else {
+      if(API_EnableSync) {
+         Logger_Warn(CAT_SYSTEM, "Backend sync enabled but no credentials provided");
+         Logger_Warn(CAT_SYSTEM, "Please set API_UserEmail and API_UserPassword in EA inputs");
+      }
+      Logger_Info(CAT_SYSTEM, "Running in offline mode (no backend sync)");
+   }
+
    Session_Init();
    Risk_Init();
    Structure_Init();
@@ -125,6 +171,16 @@ void OnDeinit(const int reason) {
    // Cleanup
    Analytics_Deinit();
    Dashboard_Remove();
+
+   // Shutdown API modules (if enabled)
+   if(API_EnableSync) {
+      Heartbeat_Shutdown();
+      PerformanceSync_Shutdown();
+      BotAuth_Shutdown();
+      WebAPI_Shutdown();
+      APIConfig_Shutdown();
+   }
+
    Logger_Shutdown();
 
    if(SendNotifications) {
@@ -140,6 +196,12 @@ void OnDeinit(const int reason) {
 void OnTick() {
    // Update logger (flush remote logs periodically)
    Logger_Update();
+
+   // Update heartbeat (send to backend periodically)
+   if(API_EnableSync) {
+      Heartbeat_Update();
+      PerformanceSync_Update();
+   }
 
    // Update session status
    Session_Update();

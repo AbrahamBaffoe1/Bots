@@ -18,6 +18,7 @@
 #include <SST_MultiAsset.mqh>
 #include <SST_ExitOptimization.mqh>
 #include <SST_MachineLearning.mqh>        // PHASE 3: AI/ML Module
+#include <SST_MarketStructure.mqh>        // PHASE 3A: Market Structure
 
 //--------------------------------------------------------------------
 // PHASE 4: DASHBOARD INTEGRATION MODULES (Backend API Sync)
@@ -70,12 +71,18 @@ extern bool    TradeRegularHours     = true;
 extern bool    TradeAfterHours       = false;
 extern int     BrokerGMTOffset       = -5;
 
-// Risk Management
+// Risk Management - PHASE 2: Improved R:R (4:1)
 extern bool    UseATRStops           = true;
-extern double  ATRMultiplierSL       = 2.5;
-extern double  ATRMultiplierTP       = 4.0;
+extern double  ATRMultiplierSL       = 1.5;    // REDUCED from 2.5 to 1.5 (tighter stop)
+extern double  ATRMultiplierTP       = 6.0;    // INCREASED from 4.0 to 6.0 (4:1 R:R)
 extern int     FixedStopLossPips     = 100;
 extern int     FixedTakeProfitPips   = 200;
+
+// PHASE 2: Smart Scaling Parameters
+extern bool    UseSmartScaling       = true;   // Enable partial profit taking
+extern double  PartialClosePercent   = 25.0;   // Close 25% of position at 2:1
+extern double  PartialCloseRRRatio   = 2.0;    // Take profit at 2:1 R:R
+extern bool    MoveToBreakeven       = true;   // Move SL to breakeven after partial close
 
 // Strategies
 extern bool    UseMomentumStrategy   = true;
@@ -87,6 +94,36 @@ extern int     FastMA_Period         = 10;
 extern int     SlowMA_Period         = 50;
 extern int     RSI_Period            = 14;
 extern int     ATR_Period            = 14;
+extern int     WPR_Period            = 14;           // Williams %R period
+extern int     WPR_Oversold          = -80;          // Williams %R oversold level
+extern int     WPR_Overbought        = -20;          // Williams %R overbought level
+extern bool    UseWilliamsR          = true;         // Enable Williams %R filter
+extern int     Envelope_Period       = 14;           // Envelope MA period
+extern double  Envelope_Deviation    = 0.1;          // Envelope deviation (0.1 = 0.1%)
+extern bool    UseEnvelopes          = true;         // Enable Envelope filter
+
+//=== PHASE 3A: MARKET STRUCTURE & SUPPORT/RESISTANCE ===
+extern bool    UseMarketStructure    = true;         // Enable market structure detection
+extern bool    UseSupportResistance  = true;         // Enable S/R level detection
+extern int     SR_Lookback           = 100;          // Bars to look back for S/R levels
+extern int     SR_Strength           = 3;            // Minimum touches for valid S/R level
+extern double  MinRoomToTarget       = 3.0;          // Minimum ATR room to target (3x ATR)
+extern bool    UseOrderBlocks        = false;        // Enable order block detection (advanced)
+extern bool    UseSupplyDemand       = false;        // Enable supply/demand zones (advanced)
+extern bool    DebugMode             = false;        // Enable debug printing
+
+//=== PHASE 4: 3-CONFLUENCE SNIPER SYSTEM ===
+extern bool    Use3ConfluenceSniper  = true;         // Enable ultra-selective 3-confluence system
+extern int     D1_MA_Period          = 200;          // D1 trend MA period (200 for major trend)
+extern int     H4_MA_Period          = 50;           // H4 trend MA period (50 for intermediate trend)
+extern int     H1_Fast_MA            = 10;           // H1 fast MA for crossover
+extern int     H1_Slow_MA            = 50;           // H1 slow MA for crossover
+extern double  MinVolumeMultiplier   = 1.5;          // Minimum volume vs average (1.5x)
+extern double  MinRoomToTargetRR     = 5.0;          // Minimum room to target in R:R (5:1)
+extern bool    UseMACD               = true;         // Require MACD confirmation
+extern int     MACD_Fast             = 12;           // MACD fast period
+extern int     MACD_Slow             = 26;           // MACD slow period
+extern int     MACD_Signal           = 9;            // MACD signal period
 
 //=== QUICK WIN FILTERS (Added for +10-15% Profitability) ===
 extern double  MaxSpreadPips         = 2.0;          // Max spread in pips (reject wider spreads)
@@ -114,6 +151,29 @@ double  g_TotalProfit = 0;
 double  g_TotalLoss = 0;
 bool    g_IsMarketHours = false;
 datetime g_LastTradeTime = 0;  // Track last trade time for spacing filter
+
+// PHASE 2: Smart Scaling tracking
+struct PositionTracker {
+   int ticket;
+   double entryPrice;
+   double stopLoss;
+   double takeProfit;
+   double lotSize;
+   bool partialClosed;
+   bool movedToBreakeven;
+};
+PositionTracker g_Positions[];
+int g_PositionCount = 0;
+
+// PHASE 3A: Market Structure tracking
+struct SupportResistance {
+   string symbol;
+   double level;
+   int touches;
+   datetime lastTouch;
+   bool isSupport;
+};
+SupportResistance g_SRLevels[];
 
 enum EA_STATE { STATE_READY, STATE_SUSPENDED };
 EA_STATE g_EAState = STATE_READY;
@@ -214,6 +274,135 @@ bool ValidateLicense() {
 
    Print("========================");
    return true;
+}
+
+//--------------------------------------------------------------------
+// PATTERN RECOGNITION HELPER FUNCTIONS (For Market Structure)
+//--------------------------------------------------------------------
+
+// Helper: Get candle body size
+double Pattern_GetBodySize(string symbol, int timeframe, int shift) {
+   double open = iOpen(symbol, timeframe, shift);
+   double close = iClose(symbol, timeframe, shift);
+   return MathAbs(close - open);
+}
+
+// Helper: Is bullish candle
+bool Pattern_IsBullish(string symbol, int timeframe, int shift) {
+   return iClose(symbol, timeframe, shift) > iOpen(symbol, timeframe, shift);
+}
+
+//--------------------------------------------------------------------
+// PHASE 2: POSITION TRACKING & SMART SCALING FUNCTIONS
+//--------------------------------------------------------------------
+
+// Add position to tracker
+void AddPositionTracker(int ticket, double entryPrice, double sl, double tp, double lots) {
+   ArrayResize(g_Positions, g_PositionCount + 1);
+   g_Positions[g_PositionCount].ticket = ticket;
+   g_Positions[g_PositionCount].entryPrice = entryPrice;
+   g_Positions[g_PositionCount].stopLoss = sl;
+   g_Positions[g_PositionCount].takeProfit = tp;
+   g_Positions[g_PositionCount].lotSize = lots;
+   g_Positions[g_PositionCount].partialClosed = false;
+   g_Positions[g_PositionCount].movedToBreakeven = false;
+   g_PositionCount++;
+}
+
+// Find position in tracker
+int FindPositionTracker(int ticket) {
+   for(int i = 0; i < g_PositionCount; i++) {
+      if(g_Positions[i].ticket == ticket) return i;
+   }
+   return -1;
+}
+
+// Remove position from tracker
+void RemovePositionTracker(int ticket) {
+   int index = FindPositionTracker(ticket);
+   if(index < 0) return;
+
+   // Shift array elements
+   for(int i = index; i < g_PositionCount - 1; i++) {
+      g_Positions[i] = g_Positions[i + 1];
+   }
+   g_PositionCount--;
+   ArrayResize(g_Positions, g_PositionCount);
+}
+
+// Check and execute smart scaling
+void CheckSmartScaling(int ticket) {
+   if(!UseSmartScaling) return;
+
+   int index = FindPositionTracker(ticket);
+   if(index < 0) return;
+
+   if(!OrderSelect(ticket, SELECT_BY_TICKET)) return;
+
+   PositionTracker pos = g_Positions[index];
+   bool isLong = (OrderType() == OP_BUY);
+   double currentPrice = isLong ? MarketInfo(OrderSymbol(), MODE_BID) : MarketInfo(OrderSymbol(), MODE_ASK);
+
+   // Calculate profit in R (Risk units)
+   double riskPoints = MathAbs(pos.entryPrice - pos.stopLoss);
+   if(riskPoints <= 0) return;
+
+   double profitPoints = isLong ? (currentPrice - pos.entryPrice) : (pos.entryPrice - currentPrice);
+   double rMultiple = profitPoints / riskPoints;
+
+   // STEP 1: Partial close at 2:1 R:R
+   if(!pos.partialClosed && rMultiple >= PartialCloseRRRatio) {
+      double closeLots = OrderLots() * (PartialClosePercent / 100.0);
+      closeLots = NormalizeDouble(closeLots, 2);
+
+      if(closeLots >= MarketInfo(OrderSymbol(), MODE_MINLOT)) {
+         if(OrderClose(ticket, closeLots, currentPrice, 3, clrOrange)) {
+            Print("✓ SMART SCALING: Closed ", PartialClosePercent, "% of #", ticket,
+                  " at ", DoubleToString(rMultiple, 1), "R");
+            g_Positions[index].partialClosed = true;
+
+            // Log to API if enabled
+            if(API_EnableSync && !BacktestMode) {
+               TradeSync_SendTradeClose(
+                  ticket,
+                  currentPrice,
+                  OrderProfit(),
+                  OrderCommission(),
+                  OrderSwap(),
+                  TimeCurrent()
+               );
+            }
+         }
+      }
+   }
+
+   // STEP 2: Move to breakeven after partial close
+   if(pos.partialClosed && !pos.movedToBreakeven && MoveToBreakeven) {
+      if(OrderSelect(ticket, SELECT_BY_TICKET)) {
+         double newSL = pos.entryPrice;
+
+         // Add small buffer (1 pip) to account for spread
+         double buffer = MarketInfo(OrderSymbol(), MODE_POINT) * 10.0;
+         if(isLong) {
+            newSL += buffer;
+         } else {
+            newSL -= buffer;
+         }
+
+         // Only modify if new SL is better than current
+         bool shouldModify = false;
+         if(isLong && newSL > OrderStopLoss()) shouldModify = true;
+         if(!isLong && newSL < OrderStopLoss()) shouldModify = true;
+
+         if(shouldModify) {
+            if(OrderModify(ticket, OrderOpenPrice(), NormalizeDouble(newSL, _Digits),
+                          OrderTakeProfit(), 0, clrGreen)) {
+               Print("✓ SMART SCALING: Moved SL to breakeven for #", ticket);
+               g_Positions[index].movedToBreakeven = true;
+            }
+         }
+      }
+   }
 }
 
 //--------------------------------------------------------------------
@@ -320,27 +509,43 @@ bool CheckSpreadFilter(string symbol) {
    return true;
 }
 
-// Filter 2: Time of Day Filter (Avoid first 30min and lunch)
+// Filter 2: PHASE 3B: Enhanced Time of Day Filter
 bool CheckTimeOfDayFilter() {
    if(!UseTimeOfDayFilter || BacktestMode) return true;
 
    int hour = TimeHour(TimeCurrent());
    int minute = TimeMinute(TimeCurrent());
+   int currentTime = hour * 60 + minute; // Convert to minutes since midnight
 
-   // Skip first 30 minutes of market open (9:30-10:00 AM EST)
-   if(hour == 9 && minute < 30) {
+   // AVOID: First 30 minutes after market open (9:30-10:00 AM EST)
+   if(currentTime >= 570 && currentTime < 600) { // 9:30 AM - 10:00 AM
       if(VerboseLogging) Print("✗ Market just opened - waiting for first 30 min to pass");
       return false;
    }
 
-   if(hour == 10 && minute == 0) {
-      if(VerboseLogging) Print("✓ First 30 min passed - ready to trade");
+   // AVOID: Lunch hour (12:00-1:00 PM EST - low volume, choppy)
+   if(currentTime >= 720 && currentTime < 780) { // 12:00 PM - 1:00 PM
+      if(VerboseLogging) Print("✗ Lunch hour - skipping trades");
+      return false;
    }
 
-   // Skip lunch hour (12:00-1:00 PM EST - low volume, choppy)
-   if(hour == 12 || hour == 13) {
-      if(VerboseLogging && minute == 0) Print("✗ Lunch hour - skipping trades");
+   // AVOID: Last 30 minutes before market close (3:30-4:00 PM EST)
+   if(currentTime >= 930 && currentTime < 960) { // 3:30 PM - 4:00 PM
+      if(VerboseLogging) Print("✗ Market closing soon - avoiding last 30 min");
       return false;
+   }
+
+   // BEST TIMES: 10:00-11:30 AM and 2:00-3:00 PM EST (optional preference)
+   bool isBestTime = false;
+   if(currentTime >= 600 && currentTime < 690) { // 10:00 AM - 11:30 AM
+      isBestTime = true;
+   }
+   if(currentTime >= 840 && currentTime < 900) { // 2:00 PM - 3:00 PM
+      isBestTime = true;
+   }
+
+   if(isBestTime && VerboseLogging) {
+      Print("✓ BEST TRADING TIME - high volume and clear trends");
    }
 
    return true;
@@ -399,11 +604,315 @@ bool CheckSPYTrendFilter(bool isBuySignal) {
    }
 
    if(VerboseLogging) {
-      string trend = marketBullish ? "BULLISH" : "BEARISH";
-      Print("✓ ", MarketIndexSymbol, " ", trend, " - ", isBuySignal ? "LONG" : "SHORT", " trade aligned");
+      string trend = "";
+      if(marketBullish) trend = "BULLISH";
+      else trend = "BEARISH";
+
+      string direction = "";
+      if(isBuySignal) direction = "LONG";
+      else direction = "SHORT";
+
+      Print("✓ ", MarketIndexSymbol, " ", trend, " - ", direction, " trade aligned");
    }
 
    return true;
+}
+
+// PHASE 1B: VOLUME FILTER - Reject trades without institutional buying/selling
+bool CheckVolumeFilter(string symbol) {
+   // Calculate average volume over 20 periods (H1)
+   double totalVolume = 0;
+   int volumePeriod = 20;
+
+   for(int i = 1; i <= volumePeriod; i++) {
+      totalVolume += iVolume(symbol, PERIOD_H1, i);
+   }
+
+   double avgVolume = totalVolume / volumePeriod;
+   double currentVolume = iVolume(symbol, PERIOD_H1, 0);
+
+   // Prevent division by zero
+   if(avgVolume <= 0) {
+      if(VerboseLogging) Print("⚠ ", symbol, " - Volume data unavailable, skipping volume filter");
+      return true;  // Skip filter if no data
+   }
+
+   double volumeRatio = currentVolume / avgVolume;
+
+   // Require current volume to be at least 1.5x average (institutional activity)
+   if(volumeRatio < 1.5) {
+      if(VerboseLogging) Print("✗ ", symbol, " - Low volume (", DoubleToString(volumeRatio, 2), "x avg) - rejecting trade");
+      return false;
+   }
+
+   if(VerboseLogging) Print("✓ ", symbol, " - Volume OK (", DoubleToString(volumeRatio, 2), "x avg)");
+   return true;
+}
+
+// PHASE 3A: MARKET STRUCTURE - Check for higher highs/lows (BUY) or lower highs/lows (SELL)
+bool CheckMarketStructure(string symbol, bool isBuySignal) {
+   if(!UseMarketStructure) return true;
+
+   int trendStructure = Structure_GetTrendStructure(symbol, PERIOD_H1, 50);
+
+   // For BUY: Need uptrend structure (higher highs and higher lows)
+   if(isBuySignal) {
+      if(trendStructure != 1) {
+         if(VerboseLogging) Print("✗ ", symbol, " - No uptrend structure (need higher highs/lows for BUY)");
+         return false;
+      }
+      if(VerboseLogging) Print("✓ ", symbol, " - Uptrend structure confirmed (higher highs/lows)");
+      return true;
+   }
+
+   // For SELL: Need downtrend structure (lower highs and lower lows)
+   if(trendStructure != -1) {
+      if(VerboseLogging) Print("✗ ", symbol, " - No downtrend structure (need lower highs/lows for SELL)");
+      return false;
+   }
+   if(VerboseLogging) Print("✓ ", symbol, " - Downtrend structure confirmed (lower highs/lows)");
+   return true;
+}
+
+// PHASE 4: 3-CONFLUENCE SNIPER SYSTEM
+// Checks: D1 200MA + H4 50MA + H1 crossover + RSI + WPR + MACD + Volume + S/R + 5:1 R:R
+bool Check3ConfluenceSniper(string symbol, bool isBuySignal) {
+   if(!Use3ConfluenceSniper) return true;
+
+   // CONFLUENCE 1: D1 200MA Trend Alignment
+   double d1_close = iClose(symbol, PERIOD_D1, 0);
+   double d1_ma200 = iMA(symbol, PERIOD_D1, D1_MA_Period, 0, MODE_SMA, PRICE_CLOSE, 0);
+   bool d1_aligned = isBuySignal ? (d1_close > d1_ma200) : (d1_close < d1_ma200);
+
+   if(!d1_aligned) {
+      if(VerboseLogging) Print("✗ ", symbol, " - D1 trend not aligned (price ",
+            (isBuySignal ? "below" : "above"), " 200MA)");
+      return false;
+   }
+   if(VerboseLogging) Print("✓ ", symbol, " - D1 trend aligned (price ",
+         (isBuySignal ? "above" : "below"), " 200MA)");
+
+   // CONFLUENCE 2: H4 50MA Trend Alignment
+   double h4_close = iClose(symbol, PERIOD_H4, 0);
+   double h4_ma50 = iMA(symbol, PERIOD_H4, H4_MA_Period, 0, MODE_SMA, PRICE_CLOSE, 0);
+   bool h4_aligned = isBuySignal ? (h4_close > h4_ma50) : (h4_close < h4_ma50);
+
+   if(!h4_aligned) {
+      if(VerboseLogging) Print("✗ ", symbol, " - H4 trend not aligned (price ",
+            (isBuySignal ? "below" : "above"), " 50MA)");
+      return false;
+   }
+   if(VerboseLogging) Print("✓ ", symbol, " - H4 trend aligned (price ",
+         (isBuySignal ? "above" : "below"), " 50MA)");
+
+   // CONFLUENCE 3: H1 Fresh MA Crossover (within last 3 candles)
+   double h1_fast_0 = iMA(symbol, PERIOD_H1, H1_Fast_MA, 0, MODE_EMA, PRICE_CLOSE, 0);
+   double h1_slow_0 = iMA(symbol, PERIOD_H1, H1_Slow_MA, 0, MODE_SMA, PRICE_CLOSE, 0);
+   double h1_fast_1 = iMA(symbol, PERIOD_H1, H1_Fast_MA, 0, MODE_EMA, PRICE_CLOSE, 1);
+   double h1_slow_1 = iMA(symbol, PERIOD_H1, H1_Slow_MA, 0, MODE_SMA, PRICE_CLOSE, 1);
+   double h1_fast_2 = iMA(symbol, PERIOD_H1, H1_Fast_MA, 0, MODE_EMA, PRICE_CLOSE, 2);
+   double h1_slow_2 = iMA(symbol, PERIOD_H1, H1_Slow_MA, 0, MODE_SMA, PRICE_CLOSE, 2);
+   double h1_fast_3 = iMA(symbol, PERIOD_H1, H1_Fast_MA, 0, MODE_EMA, PRICE_CLOSE, 3);
+   double h1_slow_3 = iMA(symbol, PERIOD_H1, H1_Slow_MA, 0, MODE_SMA, PRICE_CLOSE, 3);
+
+   bool freshCrossover = false;
+   if(isBuySignal) {
+      // Bullish crossover: fast crossed above slow in last 3 candles
+      if((h1_fast_0 > h1_slow_0 && h1_fast_1 <= h1_slow_1) ||
+         (h1_fast_1 > h1_slow_1 && h1_fast_2 <= h1_slow_2) ||
+         (h1_fast_2 > h1_slow_2 && h1_fast_3 <= h1_slow_3)) {
+         freshCrossover = true;
+      }
+   } else {
+      // Bearish crossover: fast crossed below slow in last 3 candles
+      if((h1_fast_0 < h1_slow_0 && h1_fast_1 >= h1_slow_1) ||
+         (h1_fast_1 < h1_slow_1 && h1_fast_2 >= h1_slow_2) ||
+         (h1_fast_2 < h1_slow_2 && h1_fast_3 >= h1_slow_3)) {
+         freshCrossover = true;
+      }
+   }
+
+   if(!freshCrossover) {
+      if(VerboseLogging) Print("✗ ", symbol, " - No fresh MA crossover in last 3 candles");
+      return false;
+   }
+   if(VerboseLogging) Print("✓ ", symbol, " - Fresh MA crossover detected!");
+
+   // MOMENTUM: RSI 50-70 (bullish) or 30-50 (bearish) - Already checked in GetBuySignal/GetSellSignal
+   // MOMENTUM: WPR recovering - Already checked in GetBuySignal/GetSellSignal
+
+   // CONFLUENCE 4: MACD Positive/Negative
+   if(UseMACD) {
+      double macd_main = iMACD(symbol, PERIOD_H1, MACD_Fast, MACD_Slow, MACD_Signal, PRICE_CLOSE, MODE_MAIN, 0);
+      double macd_signal = iMACD(symbol, PERIOD_H1, MACD_Fast, MACD_Slow, MACD_Signal, PRICE_CLOSE, MODE_SIGNAL, 0);
+
+      if(isBuySignal) {
+         if(macd_main <= 0 || macd_main <= macd_signal) {
+            if(VerboseLogging) Print("✗ ", symbol, " - MACD not positive (main: ",
+                  DoubleToString(macd_main, 5), ", signal: ", DoubleToString(macd_signal, 5), ")");
+            return false;
+         }
+         if(VerboseLogging) Print("✓ ", symbol, " - MACD positive and above signal");
+      } else {
+         if(macd_main >= 0 || macd_main >= macd_signal) {
+            if(VerboseLogging) Print("✗ ", symbol, " - MACD not negative (main: ",
+                  DoubleToString(macd_main, 5), ", signal: ", DoubleToString(macd_signal, 5), ")");
+            return false;
+         }
+         if(VerboseLogging) Print("✓ ", symbol, " - MACD negative and below signal");
+      }
+   }
+
+   // CONFLUENCE 5: Volume > 1.5x average - Already checked by CheckVolumeFilter
+
+   // CONFLUENCE 6: At support/resistance - Already checked by CheckRoomToTarget
+
+   // CONFLUENCE 7: 5:1 Room to target minimum
+   double atr = iATR(symbol, PERIOD_H1, ATR_Period, 0);
+   if(atr > 0) {
+      double currentPrice = isBuySignal ? MarketInfo(symbol, MODE_ASK) : MarketInfo(symbol, MODE_BID);
+      double minRoom = atr * MinRoomToTargetRR;
+
+      if(isBuySignal) {
+         double resistance = Structure_GetNearestResistance(symbol, currentPrice);
+         if(resistance > 0) {
+            double room = resistance - currentPrice;
+            if(room < minRoom) {
+               if(VerboseLogging) Print("✗ ", symbol, " - Insufficient 5:1 room to resistance (",
+                     DoubleToString(room / atr, 1), "R, need ", MinRoomToTargetRR, "R)");
+               return false;
+            }
+            if(VerboseLogging) Print("✓ ", symbol, " - Excellent 5:1 room to resistance (",
+                  DoubleToString(room / atr, 1), "R)");
+         }
+      } else {
+         double support = Structure_GetNearestSupport(symbol, currentPrice);
+         if(support > 0) {
+            double room = currentPrice - support;
+            if(room < minRoom) {
+               if(VerboseLogging) Print("✗ ", symbol, " - Insufficient 5:1 room to support (",
+                     DoubleToString(room / atr, 1), "R, need ", MinRoomToTargetRR, "R)");
+               return false;
+            }
+            if(VerboseLogging) Print("✓ ", symbol, " - Excellent 5:1 room to support (",
+                  DoubleToString(room / atr, 1), "R)");
+         }
+      }
+   }
+
+   if(VerboseLogging) {
+      Print("╔════════════════════════════════════════╗");
+      Print("║  🎯 3-CONFLUENCE SNIPER TRIGGERED!    ║");
+      Print("║  ✓ D1 200MA aligned                   ║");
+      Print("║  ✓ H4 50MA aligned                    ║");
+      Print("║  ✓ H1 fresh crossover                 ║");
+      Print("║  ✓ RSI in optimal zone                ║");
+      Print("║  ✓ WPR recovering/falling             ║");
+      Print("║  ✓ MACD positive/negative             ║");
+      Print("║  ✓ Volume > 1.5x avg                  ║");
+      Print("║  ✓ At support/resistance              ║");
+      Print("║  ✓ 5:1 R:R room to target             ║");
+      Print("╚════════════════════════════════════════╝");
+   }
+
+   return true;
+}
+
+// PHASE 3A: SUPPORT/RESISTANCE - Check room to target (min 3x ATR)
+bool CheckRoomToTarget(string symbol, bool isBuySignal) {
+   if(!UseSupportResistance) return true;
+
+   double atr = iATR(symbol, PERIOD_H1, ATR_Period, 0);
+   if(atr <= 0) return true; // Skip if ATR not available
+
+   double currentPrice = isBuySignal ? MarketInfo(symbol, MODE_ASK) : MarketInfo(symbol, MODE_BID);
+   double minRoom = atr * MinRoomToTarget;
+
+   if(isBuySignal) {
+      // For BUY: Check distance to nearest resistance
+      double resistance = Structure_GetNearestResistance(symbol, currentPrice);
+      if(resistance > 0) {
+         double room = resistance - currentPrice;
+         if(room < minRoom) {
+            if(VerboseLogging) Print("✗ ", symbol, " - Insufficient room to resistance (",
+                  DoubleToString(room / atr, 1), "R, need ", MinRoomToTarget, "R)");
+            return false;
+         }
+         if(VerboseLogging) Print("✓ ", symbol, " - Good room to resistance (",
+               DoubleToString(room / atr, 1), "R)");
+      }
+
+      // Also check if we're AT support (good entry)
+      if(!Structure_IsNearSupport(symbol, currentPrice)) {
+         if(VerboseLogging) Print("✗ ", symbol, " - Not at support level");
+         return false;
+      }
+      if(VerboseLogging) Print("✓ ", symbol, " - At support level (good entry)");
+   } else {
+      // For SELL: Check distance to nearest support
+      double support = Structure_GetNearestSupport(symbol, currentPrice);
+      if(support > 0) {
+         double room = currentPrice - support;
+         if(room < minRoom) {
+            if(VerboseLogging) Print("✗ ", symbol, " - Insufficient room to support (",
+                  DoubleToString(room / atr, 1), "R, need ", MinRoomToTarget, "R)");
+            return false;
+         }
+         if(VerboseLogging) Print("✓ ", symbol, " - Good room to support (",
+               DoubleToString(room / atr, 1), "R)");
+      }
+
+      // Also check if we're AT resistance (good entry)
+      if(!Structure_IsNearResistance(symbol, currentPrice)) {
+         if(VerboseLogging) Print("✗ ", symbol, " - Not at resistance level");
+         return false;
+      }
+      if(VerboseLogging) Print("✓ ", symbol, " - At resistance level (good entry)");
+   }
+
+   return true;
+}
+
+// PHASE 1C: MULTI-TIMEFRAME CONFIRMATION - H1 signal must align with H4 trend and D1 structure
+bool CheckMultiTimeframeConfirmation(string symbol, bool isBuySignal) {
+   // H4 Trend Check (50 MA)
+   double h4_close = iClose(symbol, PERIOD_H4, 0);
+   double h4_ma50 = iMA(symbol, PERIOD_H4, 50, 0, MODE_SMA, PRICE_CLOSE, 0);
+   bool h4_bullish = (h4_close > h4_ma50);
+
+   // D1 Structure Check (200 MA)
+   double d1_close = iClose(symbol, PERIOD_D1, 0);
+   double d1_ma200 = iMA(symbol, PERIOD_D1, 200, 0, MODE_SMA, PRICE_CLOSE, 0);
+   bool d1_bullish = (d1_close > d1_ma200);
+
+   // For BUY: Need H4 and D1 to be bullish
+   if(isBuySignal) {
+      if(!h4_bullish) {
+         if(VerboseLogging) Print("✗ ", symbol, " - H4 bearish (price < 50MA) - rejecting LONG");
+         return false;
+      }
+      if(!d1_bullish) {
+         if(VerboseLogging) Print("✗ ", symbol, " - D1 bearish (price < 200MA) - rejecting LONG");
+         return false;
+      }
+      if(VerboseLogging) Print("✓ ", symbol, " - Multi-timeframe aligned: H1 BUY + H4 bullish + D1 bullish");
+      return true;
+   }
+
+   // For SELL: Need H4 and D1 to be bearish
+   if(!h4_bullish && !d1_bullish) {
+      if(VerboseLogging) Print("✓ ", symbol, " - Multi-timeframe aligned: H1 SELL + H4 bearish + D1 bearish");
+      return true;
+   }
+
+   if(h4_bullish) {
+      if(VerboseLogging) Print("✗ ", symbol, " - H4 bullish (price > 50MA) - rejecting SHORT");
+   }
+   if(d1_bullish) {
+      if(VerboseLogging) Print("✗ ", symbol, " - D1 bullish (price > 200MA) - rejecting SHORT");
+   }
+
+   return false;
 }
 
 double CalculateLotSize(string symbol, double slPips) {
@@ -432,27 +941,82 @@ double CalculateLotSize(string symbol, double slPips) {
 // SIMPLE STRATEGY
 //--------------------------------------------------------------------
 bool GetBuySignal(string symbol) {
-   // Simple MA crossover + RSI
+   // PHASE 1A FIX: Trade WITH trend only - no contradictions
    double fastMA = iMA(symbol, PERIOD_H1, FastMA_Period, 0, MODE_EMA, PRICE_CLOSE, 0);
    double slowMA = iMA(symbol, PERIOD_H1, SlowMA_Period, 0, MODE_SMA, PRICE_CLOSE, 0);
    double rsi = iRSI(symbol, PERIOD_H1, RSI_Period, PRICE_CLOSE, 0);
    double close = iClose(symbol, PERIOD_H1, 0);
 
-   // Buy signal: Price above both MAs, RSI between 50-70
-   if(close > fastMA && close > slowMA && fastMA > slowMA && rsi > 50 && rsi < 70) {
+   // Williams %R - RECOVERING from oversold (early momentum detection)
+   double wpr = 0;
+   double wprPrev = 0;
+   bool wprOK = true;
+   if(UseWilliamsR) {
+      wpr = iWPR(symbol, PERIOD_H1, WPR_Period, 0);
+      wprPrev = iWPR(symbol, PERIOD_H1, WPR_Period, 1);
+      // CRITICAL FIX: Look for RECOVERY from oversold (wpr was < -80, now moving up toward -50)
+      // This catches early bullish momentum BEFORE the move is done
+      wprOK = (wprPrev < WPR_Oversold && wpr > wprPrev && wpr > WPR_Oversold);
+   }
+
+   // REMOVED ENVELOPE FROM ENTRY - envelopes will only be used for exits
+   // Contradictory logic eliminated: BUY only when price > MAs (bullish trend)
+
+   // Buy signal: Price above both MAs (trend), fastMA > slowMA (momentum), RSI 50-70 (bullish but not overbought), WPR recovering
+   if(close > fastMA && close > slowMA && fastMA > slowMA && rsi > 50 && rsi < 70 && wprOK) {
+      // PHASE 1B: Volume confirmation - require institutional buying
+      if(!CheckVolumeFilter(symbol)) return false;
+
+      // PHASE 1C: Multi-timeframe confirmation - H1 signal must align with H4/D1 trend
+      if(!CheckMultiTimeframeConfirmation(symbol, true)) return false;
+
+      // PHASE 3A: Market structure - require uptrend structure (higher highs/lows)
+      if(!CheckMarketStructure(symbol, true)) return false;
+
+      // PHASE 3A: Support/Resistance - check room to target and entry at support
+      if(!CheckRoomToTarget(symbol, true)) return false;
+
       return true;
    }
    return false;
 }
 
 bool GetSellSignal(string symbol) {
+   // PHASE 1A FIX: Trade WITH trend only - no contradictions
    double fastMA = iMA(symbol, PERIOD_H1, FastMA_Period, 0, MODE_EMA, PRICE_CLOSE, 0);
    double slowMA = iMA(symbol, PERIOD_H1, SlowMA_Period, 0, MODE_SMA, PRICE_CLOSE, 0);
    double rsi = iRSI(symbol, PERIOD_H1, RSI_Period, PRICE_CLOSE, 0);
    double close = iClose(symbol, PERIOD_H1, 0);
 
-   // Sell signal: Price below both MAs, RSI between 30-50
-   if(close < fastMA && close < slowMA && fastMA < slowMA && rsi < 50 && rsi > 30) {
+   // Williams %R - FALLING from overbought (early bearish momentum detection)
+   double wpr = 0;
+   double wprPrev = 0;
+   bool wprOK = true;
+   if(UseWilliamsR) {
+      wpr = iWPR(symbol, PERIOD_H1, WPR_Period, 0);
+      wprPrev = iWPR(symbol, PERIOD_H1, WPR_Period, 1);
+      // CRITICAL FIX: Look for FALLING from overbought (wpr was > -20, now moving down toward -50)
+      // This catches early bearish momentum BEFORE the move is done
+      wprOK = (wprPrev > WPR_Overbought && wpr < wprPrev && wpr < WPR_Overbought);
+   }
+
+   // REMOVED ENVELOPE FROM ENTRY - envelopes will only be used for exits
+   // Contradictory logic eliminated: SELL only when price < MAs (bearish trend)
+
+   // Sell signal: Price below both MAs (trend), fastMA < slowMA (momentum), RSI 30-50 (bearish but not oversold), WPR falling
+   if(close < fastMA && close < slowMA && fastMA < slowMA && rsi < 50 && rsi > 30 && wprOK) {
+      // PHASE 1B: Volume confirmation - require institutional selling
+      if(!CheckVolumeFilter(symbol)) return false;
+
+      // PHASE 1C: Multi-timeframe confirmation - H1 signal must align with H4/D1 trend
+      if(!CheckMultiTimeframeConfirmation(symbol, false)) return false;
+
+      // PHASE 3A: Market structure - require downtrend structure (lower highs/lows)
+      if(!CheckMarketStructure(symbol, false)) return false;
+
+      // PHASE 3A: Support/Resistance - check room to target and entry at resistance
+      if(!CheckRoomToTarget(symbol, false)) return false;
+
       return true;
    }
    return false;
@@ -647,8 +1211,13 @@ int OnInit() {
    ML_Initialize();
    Print("✓ Machine Learning module initialized");
 
+   // 8. Market Structure - PHASE 3A: Support/Resistance, Trend structure
+   ArrayResize(g_SRLevels, 0);
+   Structure_Init();  // Initialize and find S/R levels
+   Print("✓ Market Structure module initialized");
+
    Print("╔════════════════════════════════════════╗");
-   Print("║  ALL PHASE 1+2+3 MODULES ACTIVE!      ║");
+   Print("║  ALL PHASE 1+2+3+3A MODULES ACTIVE!   ║");
    Print("║  ✓ News Filter (Live API)             ║");
    Print("║  ✓ Correlation Matrix                 ║");
    Print("║  ✓ Advanced Volatility                ║");
@@ -656,6 +1225,7 @@ int OnInit() {
    Print("║  ✓ Multi-Asset Confirmation           ║");
    Print("║  ✓ Exit Optimization                  ║");
    Print("║  🤖 Machine Learning (NEW!)           ║");
+   Print("║  📊 Market Structure (PHASE 3A)       ║");
    Print("╚════════════════════════════════════════╝\n");
 
    // If Stocks is empty or BacktestMode, use current chart symbol
@@ -743,6 +1313,11 @@ void OnTick() {
    // ════════════════════════════════════════════════════════════════
    Drawdown_Update();
 
+   // ════════════════════════════════════════════════════════════════
+   // PHASE 3A: UPDATE MARKET STRUCTURE (Periodic)
+   // ════════════════════════════════════════════════════════════════
+   Structure_Update();
+
    // Reset daily stats if new day
    if(TimeDay(TimeCurrent()) != TimeDay(g_DailyStartTime)) {
       g_DailyStartTime = TimeCurrent();
@@ -823,6 +1398,13 @@ void OnTick() {
       }
 
       // ════════════════════════════════════════════════════════════════
+      // PHASE 2: SMART SCALING - Check for partial profit and breakeven
+      // ════════════════════════════════════════════════════════════════
+      if(hasPosition && existingTicket >= 0) {
+         CheckSmartScaling(existingTicket);
+      }
+
+      // ════════════════════════════════════════════════════════════════
       // PHASE 2: EXIT OPTIMIZATION - Manage existing positions
       // ════════════════════════════════════════════════════════════════
       if(hasPosition && existingTicket >= 0) {
@@ -846,6 +1428,9 @@ void OnTick() {
                if(OrderClose(existingTicket, OrderLots(), closePrice, 3, clrRed)) {
                   Print("✓ EXIT OPTIMIZATION: Closed #", existingTicket, " on ", symbol,
                         " - P/L: ", DoubleToString(orderProfit, 2));
+
+                  // Remove from position tracker
+                  RemovePositionTracker(existingTicket);
 
                   // ════════════════════════════════════════════════════════════════
                   // PHASE 2: Record trade result in Drawdown Protection
@@ -972,6 +1557,14 @@ void OnTick() {
          }
 
          // ════════════════════════════════════════════════════════════════
+         // PHASE 4: 3-CONFLUENCE SNIPER - Ultra-selective entry system
+         // ════════════════════════════════════════════════════════════════
+         if(!Check3ConfluenceSniper(symbol, isBuy)) {
+            if(VerboseLogging) Print("✗ ", symbol, " - 3-Confluence Sniper requirements not met");
+            continue;
+         }
+
+         // ════════════════════════════════════════════════════════════════
          // ALL FILTERS PASSED - EXECUTE TRADE!
          // ════════════════════════════════════════════════════════════════
          if(VerboseLogging) {
@@ -1086,6 +1679,9 @@ void ExecuteTrade(string symbol, bool isBuy) {
       g_DailyTrades++;
       g_TotalTrades++;
       g_LastTradeTime = TimeCurrent();  // Record trade time for spacing filter
+
+      // PHASE 2: Add to position tracker for smart scaling
+      AddPositionTracker(ticket, price, sl, tp, lotSize);
 
       if(VerboseLogging) {
          Print("✓ Trade #", g_DailyTrades, " of max ", MaxDailyTrades, " today");

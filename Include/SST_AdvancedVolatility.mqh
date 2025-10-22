@@ -68,6 +68,9 @@ double Volatility_GetATRPercentile(string symbol, int timeframe, int atrPeriod =
       }
    }
 
+   // Prevent division by zero
+   if(lookback <= 0) return 50.0;  // Return neutral percentile
+
    double percentile = ((double)rank / lookback) * 100.0;
 
    return percentile;

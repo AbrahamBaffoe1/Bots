@@ -11,12 +11,13 @@
 //--------------------------------------------------------------------
 // External Parameters
 //--------------------------------------------------------------------
-extern string  Pairs                = "EURUSD,GBPUSD,USDJPY,AUDUSD,USDCHF";  // Comma-delimited list
+extern string  Pairs                = "EURUSD,GBPUSD,USDJPY,AUDUSD,USDCHF,NZDUSD,EURGBP,EURJPY,GBPJPY,AUDJPY,EURAUD,GBPAUD,EURNZD,GBPNZD,USDCAD,EURCAD,GBPCAD,AUDCAD,NZDCAD,CADCHF,CADJPY";  // All major forex pairs
+extern bool    TradeCurrentChartOnly = false;    // If true, only trades the current chart symbol
 extern double  RiskPercentPerTrade  = 1.0;       // % risk per trade
 extern int     MagicNumber          = 987654;    // Unique EA identifier
 
 // Session filtering
-extern bool    UseMultiSession      = false;
+extern bool    UseMultiSession      = false;     // Set to false = trade 24/7
 extern int     Session1Start        = 8;
 extern int     Session1End          = 12;
 extern int     Session2Start        = 14;
@@ -51,25 +52,25 @@ extern double  PartialClosePct2     = 20.0;      // Level 2: close 20%
 extern double  PartialCloseRR2      = 2.5;       // Level 2 R:R threshold
 
 // News Filter Settings
-extern bool    UseNewsFilter        = true;
+extern bool    UseNewsFilter        = false;     // DISABLED by default - enable if you have working news API
 extern string  NewsAPI_URL          = "https://api.tradingeconomics.com/calendar?c=guest:guest&f=json";
 extern int     NewsImpactThreshold  = 3;
 extern double  NewsLookAheadMinutes = 60.0;      // Skip if event is within X minutes
-extern bool    SymbolSpecificNews   = true;        // Only skip if event relates to symbol’s currencies
+extern bool    SymbolSpecificNews   = true;        // Only skip if event relates to symbol's currencies
 
 // Additional Filters
-extern bool    UseVolatilityFilter    = true;
-extern double  ATR_VolatilityThreshold= 0.0010;    // Minimum acceptable ATR on M5
-extern bool    UseMACDFilter          = true;      // MACD momentum filter
+extern bool    UseVolatilityFilter    = false;   // DISABLED by default - less strict
+extern double  ATR_VolatilityThreshold= 0.0005;    // Lowered minimum acceptable ATR on M5
+extern bool    UseMACDFilter          = false;   // DISABLED by default - less strict
 extern bool    UseBreakoutFilter      = false;     // Breakout confirmation filter
 extern int     BreakoutBars           = 10;        // Lookback bars for breakout detection
-extern double  MaxSpreadPips          = 5.0;       // Maximum acceptable spread (pips)
+extern double  MaxSpreadPips          = 10.0;      // Increased maximum acceptable spread (pips)
 
 // Daily Drawdown Limit
-extern double  DailyDrawdownLimitPct  = 5.0;       // Suspend trading if dd exceeds this %
+extern double  DailyDrawdownLimitPct  = 10.0;      // Increased to 10% - less restrictive
 
  // Correlation Filter
-extern bool    UseCorrelationFilter   = true;
+extern bool    UseCorrelationFilter   = false;   // DISABLED by default - less strict
 extern double  CorrThreshold          = 0.8;       // Minimum correlation threshold
 
 //--------------------------------------------------------------------
@@ -629,18 +630,30 @@ bool CheckBuySignal(string sym, double &slDist, double &tpDist)
    // H1 trend filter: price must be above H1 MA
    double h1c = iClose(sym, PERIOD_H1, 0);
    double h1ma = iMA(sym, PERIOD_H1, H1_MA_Period, 0, MODE_SMA, PRICE_CLOSE, 0);
-   if(h1c <= h1ma) return false;
+   if(h1c <= h1ma)
+   {
+      Print("[", sym, "] BUY rejected: H1 price below MA");
+      return false;
+   }
 
    // M5 MA crossover: previous close below MA, current close above MA
    double cM5 = iClose(sym, PERIOD_M5, 0);
    double pM5 = iClose(sym, PERIOD_M5, 1);
    double maC = iMA(sym, PERIOD_M5, M5_MA_Period, 0, MODE_SMA, PRICE_CLOSE, 0);
    double maP = iMA(sym, PERIOD_M5, M5_MA_Period, 0, MODE_SMA, PRICE_CLOSE, 1);
-   if(!(pM5 < maP && cM5 > maC)) return false;
+   if(!(pM5 < maP && cM5 > maC))
+   {
+      Print("[", sym, "] BUY rejected: No M5 MA crossover");
+      return false;
+   }
 
    // RSI confirmation: must be above 50 for buy
    double rsi = iRSI(sym, PERIOD_M5, RSI_Period, PRICE_CLOSE, 0);
-   if(rsi <= 50) return false;
+   if(rsi <= 50)
+   {
+      Print("[", sym, "] BUY rejected: RSI = ", rsi, " (need > 50)");
+      return false;
+   }
 
    // Volatility filter
    if(UseVolatilityFilter)
@@ -682,18 +695,30 @@ bool CheckSellSignal(string sym, double &slDist, double &tpDist)
    // H1 trend filter: price must be below H1 MA
    double h1c = iClose(sym, PERIOD_H1, 0);
    double h1ma = iMA(sym, PERIOD_H1, H1_MA_Period, 0, MODE_SMA, PRICE_CLOSE, 0);
-   if(h1c >= h1ma) return false;
+   if(h1c >= h1ma)
+   {
+      Print("[", sym, "] SELL rejected: H1 price above MA");
+      return false;
+   }
 
    // M5 MA crossover: previous close above MA, current close below MA
    double cM5 = iClose(sym, PERIOD_M5, 0);
    double pM5 = iClose(sym, PERIOD_M5, 1);
    double maC = iMA(sym, PERIOD_M5, M5_MA_Period, 0, MODE_SMA, PRICE_CLOSE, 0);
    double maP = iMA(sym, PERIOD_M5, M5_MA_Period, 0, MODE_SMA, PRICE_CLOSE, 1);
-   if(!(pM5 > maP && cM5 < maC)) return false;
+   if(!(pM5 > maP && cM5 < maC))
+   {
+      Print("[", sym, "] SELL rejected: No M5 MA crossover");
+      return false;
+   }
 
    // RSI confirmation: must be below 50 for sell
    double rsi = iRSI(sym, PERIOD_M5, RSI_Period, PRICE_CLOSE, 0);
-   if(rsi >= 50) return false;
+   if(rsi >= 50)
+   {
+      Print("[", sym, "] SELL rejected: RSI = ", rsi, " (need < 50)");
+      return false;
+   }
 
    // Volatility filter
    if(UseVolatilityFilter)
@@ -1001,15 +1026,16 @@ void UpdateDashboard()
       stateColor = clrRed;
    }
 
-   string dash = "=== UltraFoolModeEA ===\n";
-   dash += "State: " + stateStr + "\n";
+   string dash = "=== ULTRABOT EA ===\n";
+   dash += "STATUS: " + stateStr + "\n";
+   dash += "Chart: " + Symbol() + "\n";
    dash += "Account: $" + DoubleToString(AccountEquity(), 2) + "\n";
    dash += "Daily Start: $" + DoubleToString(gDailyStartEquity, 2) + "\n";
    double dailyPL = AccountEquity() - gDailyStartEquity;
    dash += "Daily P/L: " + (dailyPL >= 0 ? "+" : "") + DoubleToString(dailyPL, 2) + "\n";
    dash += "Open Trades: " + IntegerToString(OrdersTotal()) + "\n";
    dash += "Tracked: " + IntegerToString(ArraySize(trackedTrades)) + "\n";
-   dash += "Pairs: " + IntegerToString(PairCount) + "\n";
+   dash += "Monitoring: " + IntegerToString(PairCount) + " pairs\n";
    dash += "Filters: V:" + (UseVolatilityFilter ? "Y" : "N") +
            " M:" + (UseMACDFilter ? "Y" : "N") +
            " N:" + (UseNewsFilter ? "Y" : "N") +
@@ -1019,11 +1045,11 @@ void UpdateDashboard()
    if(ObjectFind(0, "UltraFoolDashboard") < 0)
    {
       ObjectCreate(0, "UltraFoolDashboard", OBJ_LABEL, 0, 0, 0);
-      ObjectSetInteger(0, "UltraFoolDashboard", OBJPROP_CORNER, CORNER_RIGHT_UPPER);
+      ObjectSetInteger(0, "UltraFoolDashboard", OBJPROP_CORNER, CORNER_LEFT_UPPER);
       ObjectSetInteger(0, "UltraFoolDashboard", OBJPROP_XDISTANCE, 10);
       ObjectSetInteger(0, "UltraFoolDashboard", OBJPROP_YDISTANCE, 20);
-      ObjectSetInteger(0, "UltraFoolDashboard", OBJPROP_FONTSIZE, 10);
-      ObjectSetString(0, "UltraFoolDashboard", OBJPROP_FONT, "Courier New");
+      ObjectSetInteger(0, "UltraFoolDashboard", OBJPROP_FONTSIZE, 11);
+      ObjectSetString(0, "UltraFoolDashboard", OBJPROP_FONT, "Arial Bold");
    }
    ObjectSetInteger(0, "UltraFoolDashboard", OBJPROP_COLOR, stateColor);
    ObjectSetString(0, "UltraFoolDashboard", OBJPROP_TEXT, dash);
@@ -1032,15 +1058,134 @@ void UpdateDashboard()
 //--------------------------------------------------------------------
 // SECTION 10: ONINIT and ONDEINIT FUNCTIONS
 //--------------------------------------------------------------------
+// Helper function to find broker's symbol name
+string FindBrokerSymbol(string basePair)
+{
+   // Try exact match first
+   double spread = MarketInfo(basePair, MODE_SPREAD);
+   double ask = MarketInfo(basePair, MODE_ASK);
+   if(spread > 0 && ask > 0)
+   {
+      Print("  → Found exact match: ", basePair);
+      return basePair;
+   }
+
+   // Try common broker suffixes
+   string suffixes[] = {"m", ".m", "pro", ".pro", ".", "_", "ecn", ".ecn", "c", ".c", "i", ".i", "mini", ".mini", "f", ".f"};
+   for(int i = 0; i < ArraySize(suffixes); i++)
+   {
+      string testSymbol = basePair + suffixes[i];
+      spread = MarketInfo(testSymbol, MODE_SPREAD);
+      ask = MarketInfo(testSymbol, MODE_ASK);
+      if(spread > 0 && ask > 0)
+      {
+         Print("  → Found broker symbol: ", basePair, " = ", testSymbol);
+         return testSymbol;
+      }
+   }
+
+   // Try lowercase variations
+   string lowerPair = basePair;
+   StringToLower(lowerPair);
+   spread = MarketInfo(lowerPair, MODE_SPREAD);
+   ask = MarketInfo(lowerPair, MODE_ASK);
+   if(spread > 0 && ask > 0)
+   {
+      Print("  → Found broker symbol: ", basePair, " = ", lowerPair);
+      return lowerPair;
+   }
+
+   // Try lowercase with suffixes
+   for(int i = 0; i < ArraySize(suffixes); i++)
+   {
+      string testSymbol = lowerPair + suffixes[i];
+      spread = MarketInfo(testSymbol, MODE_SPREAD);
+      ask = MarketInfo(testSymbol, MODE_ASK);
+      if(spread > 0 && ask > 0)
+      {
+         Print("  → Found broker symbol: ", basePair, " = ", testSymbol);
+         return testSymbol;
+      }
+   }
+
+   Print("  ✗ Could not find broker symbol for: ", basePair);
+   return ""; // Not found
+}
+
 int OnInit()
 {
-   Print("=== UltraFoolModeEA_Advanced init => starting initialization ===");
-   PairCount = SplitPairs(Pairs, ",", CurrencyPairs);
-   Print("Detected ", PairCount, " pairs: ", Pairs);
+   Print("========================================");
+   Print("=== UltraBot EA STARTING ===");
+   Print("========================================");
+   Print("Current Chart Symbol: ", Symbol());
+   Print("Current Chart Timeframe: ", Period());
+   Print("Account Equity: $", AccountEquity());
+
+   // Setup pairs
+   if(TradeCurrentChartOnly)
+   {
+      PairCount = 1;
+      ArrayResize(CurrencyPairs, 1);
+      CurrencyPairs[0] = Symbol();
+      Print("Mode: Trading CURRENT CHART ONLY - ", Symbol());
+   }
+   else
+   {
+      string tempPairs[];
+      int tempCount = SplitPairs(Pairs, ",", tempPairs);
+      Print("Mode: Trading MULTIPLE PAIRS");
+      Print("Scanning ", tempCount, " pairs for broker compatibility...");
+      Print("");
+
+      // Auto-detect broker symbols
+      ArrayResize(CurrencyPairs, 0);
+      PairCount = 0;
+
+      for(int i = 0; i < tempCount; i++)
+      {
+         string brokerSymbol = FindBrokerSymbol(tempPairs[i]);
+         if(brokerSymbol != "")
+         {
+            ArrayResize(CurrencyPairs, PairCount + 1);
+            CurrencyPairs[PairCount] = brokerSymbol;
+            PairCount++;
+            double spread = MarketInfo(brokerSymbol, MODE_SPREAD);
+            Print("  ✓ ", tempPairs[i], " → ", brokerSymbol, " (spread: ", spread, " points)");
+         }
+         else
+         {
+            Print("  ✗ ", tempPairs[i], " - NOT AVAILABLE with this broker");
+         }
+      }
+
+      Print("");
+      Print("✓ Successfully detected ", PairCount, " tradeable pairs");
+   }
+
+   // Verify each pair (for TradeCurrentChartOnly mode)
+   if(TradeCurrentChartOnly)
+   {
+      double spread = MarketInfo(CurrencyPairs[0], MODE_SPREAD);
+      if(spread > 0)
+         Print("  ✓ ", CurrencyPairs[0], " - Available (spread: ", spread, " points)");
+      else
+         Print("  ✗ ", CurrencyPairs[0], " - NOT AVAILABLE or no data");
+   }
 
    gDailyStartTime = TimeCurrent();
    gDailyStartEquity = AccountEquity();
-   Print("Daily equity baseline set to ", gDailyStartEquity);
+   Print("Daily equity baseline set to $", gDailyStartEquity);
+
+   // Print filter status
+   Print("========================================");
+   Print("FILTER SETTINGS:");
+   Print("  Session Filter: ", (UseMultiSession ? "ENABLED" : "DISABLED - Trading 24/7"));
+   Print("  News Filter: ", (UseNewsFilter ? "ENABLED" : "DISABLED"));
+   Print("  Volatility Filter: ", (UseVolatilityFilter ? "ENABLED" : "DISABLED"));
+   Print("  MACD Filter: ", (UseMACDFilter ? "ENABLED" : "DISABLED"));
+   Print("  Correlation Filter: ", (UseCorrelationFilter ? "ENABLED" : "DISABLED"));
+   Print("  Max Spread: ", MaxSpreadPips, " pips");
+   Print("========================================");
 
    // Track existing open orders (in case EA was restarted)
    int existingOrders = 0;
@@ -1058,7 +1203,8 @@ int OnInit()
    if(existingOrders > 0)
       Print("Tracked ", existingOrders, " existing open orders");
 
-   Print("=== UltraFoolModeEA initialization complete ===");
+   Print("=== UltraBot EA READY TO TRADE ===");
+   Print("========================================");
    return(INIT_SUCCEEDED);
 }
 
@@ -1117,8 +1263,12 @@ void OnTick()
    for(int i = 0; i < PairCount; i++)
    {
       string sym = CurrencyPairs[i];
-      if(MarketInfo(sym, MODE_SPREAD) <= 0)
+      double spread = MarketInfo(sym, MODE_SPREAD);
+      if(spread <= 0)
+      {
+         Print("[", sym, "] Skipped: No market data available");
          continue;
+      }
       
       // Skip if there's already an open order on this symbol
       int openCount = 0;
@@ -1208,13 +1358,25 @@ void OnTick()
          double sl = ask - slDist * pip;
          double tp = ask + tpDist * pip;
          double lot = CalculateLotSize(sym, slDist);
-         int ticket = RobustOrderSend(sym, OP_BUY, lot, ask, 3, sl, tp, "Final Trend BUY");
+         Print("========================================");
+         Print("[", sym, "] *** BUY SIGNAL CONFIRMED ***");
+         Print("  Price: ", ask);
+         Print("  Lot Size: ", lot);
+         Print("  SL Distance: ", slDist, " pips");
+         Print("  TP Distance: ", tpDist, " pips");
+         Print("========================================");
+         int ticket = RobustOrderSend(sym, OP_BUY, lot, ask, 3, sl, tp, "UltraBot BUY");
          if(ticket >= 0)
          {
             LogTrade(ticket, "BUY", TimeCurrent(), ask, 0, 0, "Opened");
             TrackNewTrade(ticket);
-            Notify("New BUY trade: " + sym + " @ " + DoubleToString(ask, _Digits) +
+            Print("[", sym, "] ✓ BUY order opened successfully! Ticket #", ticket);
+            Notify("UltraBot: New BUY " + sym + " @ " + DoubleToString(ask, _Digits) +
                    " | Lot=" + DoubleToString(lot, 2) + " | SL=" + DoubleToString(slDist, 1) + "pips");
+         }
+         else
+         {
+            Print("[", sym, "] ✗ BUY order FAILED! Error: ", GetLastError());
          }
       }
       else if(finalSell)
@@ -1223,13 +1385,25 @@ void OnTick()
          double sl = bid + slDist * pip;
          double tp = bid - tpDist * pip;
          double lot = CalculateLotSize(sym, slDist);
-         int ticket = RobustOrderSend(sym, OP_SELL, lot, bid, 3, sl, tp, "Final Trend SELL");
+         Print("========================================");
+         Print("[", sym, "] *** SELL SIGNAL CONFIRMED ***");
+         Print("  Price: ", bid);
+         Print("  Lot Size: ", lot);
+         Print("  SL Distance: ", slDist, " pips");
+         Print("  TP Distance: ", tpDist, " pips");
+         Print("========================================");
+         int ticket = RobustOrderSend(sym, OP_SELL, lot, bid, 3, sl, tp, "UltraBot SELL");
          if(ticket >= 0)
          {
             LogTrade(ticket, "SELL", TimeCurrent(), bid, 0, 0, "Opened");
             TrackNewTrade(ticket);
-            Notify("New SELL trade: " + sym + " @ " + DoubleToString(bid, _Digits) +
+            Print("[", sym, "] ✓ SELL order opened successfully! Ticket #", ticket);
+            Notify("UltraBot: New SELL " + sym + " @ " + DoubleToString(bid, _Digits) +
                    " | Lot=" + DoubleToString(lot, 2) + " | SL=" + DoubleToString(slDist, 1) + "pips");
+         }
+         else
+         {
+            Print("[", sym, "] ✗ SELL order FAILED! Error: ", GetLastError());
          }
       }
    }

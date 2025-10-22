@@ -304,20 +304,13 @@ void ML_TrainOnHistory(
    double momentum = 0.9;  // Momentum factor for faster convergence
 
    // Momentum matrices (track previous weight changes)
+   // Initialize to zero to suppress compiler warnings
    double momentumIH[30][20];
    double momentumHO[20][3];
 
-   // Initialize momentum to zero
-   for(int i = 0; i < 30; i++) {
-      for(int h = 0; h < 20; h++) {
-         momentumIH[i][h] = 0.0;
-      }
-   }
-   for(int h = 0; h < 20; h++) {
-      for(int o = 0; o < 3; o++) {
-         momentumHO[h][o] = 0.0;
-      }
-   }
+   // Explicitly initialize all elements to zero
+   ArrayInitialize(momentumIH, 0.0);
+   ArrayInitialize(momentumHO, 0.0);
 
    // MULTIPLE TRAINING EPOCHS for better learning
    int epochs = 3;

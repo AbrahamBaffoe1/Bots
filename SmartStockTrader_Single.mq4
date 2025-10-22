@@ -84,6 +84,13 @@ extern double  PartialClosePercent   = 25.0;   // Close 25% of position at 2:1
 extern double  PartialCloseRRRatio   = 2.0;    // Take profit at 2:1 R:R
 extern bool    MoveToBreakeven       = true;   // Move SL to breakeven after partial close
 
+// ML-Driven Risk Management (NEW!)
+extern bool    UseMLRiskManagement   = true;   // Adjust SL/TP based on ML confidence
+extern double  MLHighConfThreshold   = 75.0;   // High confidence threshold (%)
+extern double  MLLowConfThreshold    = 65.0;   // Low confidence threshold (%)
+extern double  MLHighConfTPMultiplier = 1.2;   // Increase TP by 20% for high confidence
+extern double  MLLowConfSLMultiplier  = 0.8;   // Tighten SL by 20% for low confidence
+
 // Strategies
 extern bool    UseMomentumStrategy   = true;
 extern bool    UseTrendFollowing     = true;
@@ -625,11 +632,11 @@ bool CheckVolumeFilter(string symbol) {
    int volumePeriod = 20;
 
    for(int i = 1; i <= volumePeriod; i++) {
-      totalVolume += iVolume(symbol, PERIOD_H1, i);
+      totalVolume += (double)iVolume(symbol, PERIOD_H1, i);
    }
 
    double avgVolume = totalVolume / volumePeriod;
-   double currentVolume = iVolume(symbol, PERIOD_H1, 0);
+   double currentVolume = (double)iVolume(symbol, PERIOD_H1, 0);
 
    // Prevent division by zero
    if(avgVolume <= 0) {
@@ -1573,15 +1580,15 @@ void OnTick() {
             Print("╚════════════════════════════════════════╝");
          }
 
-         ExecuteTrade(symbol, isBuy);
+         ExecuteTrade(symbol, isBuy, mlConfidence);
       }
    }
 }
 
 //--------------------------------------------------------------------
-// EXECUTE TRADE
+// EXECUTE TRADE (with ML confidence for dynamic risk management)
 //--------------------------------------------------------------------
-void ExecuteTrade(string symbol, bool isBuy) {
+void ExecuteTrade(string symbol, bool isBuy, double mlConfidence = 0.0) {
    double atr = iATR(symbol, PERIOD_H1, ATR_Period, 0);
    double point = MarketInfo(symbol, MODE_POINT);
 
@@ -1616,6 +1623,33 @@ void ExecuteTrade(string symbol, bool isBuy) {
                          volRegime == VOL_NORMAL ? "NORMAL" :
                          volRegime == VOL_HIGH ? "HIGH" : "VERY HIGH");
       Print("📊 Volatility Regime: ", regimeStr, " (SL mult: ", DoubleToString(volSLMultiplier, 2), ", TP mult: ", DoubleToString(volTPMultiplier, 2), ")");
+   }
+
+   // ════════════════════════════════════════════════════════════════
+   // ML-DRIVEN DYNAMIC RISK MANAGEMENT (NEW!)
+   // Adjust SL/TP based on ML confidence level
+   // ════════════════════════════════════════════════════════════════
+   if(UseMLRiskManagement && mlConfidence > 0) {
+      if(mlConfidence >= MLHighConfThreshold) {
+         // HIGH CONFIDENCE: Widen TP for bigger wins
+         tpPips = tpPips * MLHighConfTPMultiplier;
+         if(VerboseLogging) {
+            Print("🎯 ML HIGH CONFIDENCE (", DoubleToString(mlConfidence, 1), "%) - TP increased by ",
+                  DoubleToString((MLHighConfTPMultiplier - 1.0) * 100, 0), "%");
+         }
+      } else if(mlConfidence < MLLowConfThreshold) {
+         // LOW CONFIDENCE: Tighten SL to reduce risk
+         slPips = slPips * MLLowConfSLMultiplier;
+         if(VerboseLogging) {
+            Print("⚠ ML LOW CONFIDENCE (", DoubleToString(mlConfidence, 1), "%) - SL tightened by ",
+                  DoubleToString((1.0 - MLLowConfSLMultiplier) * 100, 0), "%");
+         }
+      } else {
+         // MEDIUM CONFIDENCE: Use standard SL/TP
+         if(VerboseLogging) {
+            Print("📊 ML MEDIUM CONFIDENCE (", DoubleToString(mlConfidence, 1), "%) - Standard SL/TP");
+         }
+      }
    }
 
    double price = isBuy ? MarketInfo(symbol, MODE_ASK) : MarketInfo(symbol, MODE_BID);

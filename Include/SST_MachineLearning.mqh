@@ -2,19 +2,28 @@
 //|                                    SST_MachineLearning.mqh       |
 //|           Smart Stock Trader - Machine Learning Module           |
 //|     Pattern Recognition, Price Prediction, Confidence Scoring    |
+//|                  ENHANCED: 30 Features, Deep Learning            |
 //+------------------------------------------------------------------+
 #property strict
 
+// Include enhanced ML features and neural network
+#include <SST_MachineLearning_Enhanced.mqh>
+
 //--------------------------------------------------------------------
-// MACHINE LEARNING PARAMETERS
+// MACHINE LEARNING PARAMETERS - ENHANCED
 //--------------------------------------------------------------------
 extern bool    UseMLPredictions      = true;         // Enable ML-based predictions
 extern bool    UsePatternRecognition = true;         // Candlestick pattern recognition
-extern int     MLTrainingPeriod      = 500;          // Bars to use for training
-extern double  MLConfidenceThreshold = 60.0;         // Minimum confidence % to trade (0-100)
+extern int     MLTrainingPeriod      = 1000;         // Bars to use for training (INCREASED)
+extern double  MLConfidenceThreshold = 65.0;         // Minimum confidence % to trade (OPTIMIZED for better balance)
 extern bool    UseAdaptiveLearning   = true;         // Update weights based on results
-extern int     MLLookbackBars        = 20;           // Bars to analyze for patterns
+extern int     MLLookbackBars        = 50;           // Bars to analyze for patterns (INCREASED)
 extern bool    UsePriceActionML      = true;         // Price action pattern detection
+extern bool    UseDeepLearning       = true;         // Multi-layer neural network (NEW)
+extern int     MLHiddenLayerSize     = 20;           // Hidden layer neurons (NEW)
+extern double  MLLearningRate        = 0.001;        // Learning rate for training (NEW)
+extern bool    UseFeatureScaling     = true;         // Normalize features (NEW)
+extern bool    UseWinRatePrediction  = true;         // Predict win probability (NEW)
 
 //--------------------------------------------------------------------
 // ML STRUCTURES
@@ -50,33 +59,107 @@ struct MLTradeHistory {
 MLTradeHistory g_MLHistory[];
 int g_MLHistoryCount = 0;
 
-// Neural Network Weights (Simple Perceptron)
-double g_MLWeights[10];        // 10 input features
-double g_MLBias = 0.0;
-bool   g_MLInitialized = false;
+// ENHANCED: Multi-Layer Neural Network
+#define ML_INPUT_SIZE 30        // 30 input features (increased from 10)
+#define ML_HIDDEN_SIZE 20       // 20 hidden neurons
+#define ML_OUTPUT_SIZE 3        // 3 outputs: BUY, SELL, NEUTRAL probability
+
+// Layer 1: Input → Hidden
+double g_MLWeights_IH[30][20];  // Input to Hidden weights
+double g_MLBias_H[20];          // Hidden layer bias
+
+// Layer 2: Hidden → Output
+double g_MLWeights_HO[20][3];   // Hidden to Output weights
+double g_MLBias_O[3];           // Output layer bias
+
+// Training history
+double g_MLAccuracy = 0.0;      // Current ML accuracy
+int g_MLCorrectPredictions = 0;
+int g_MLTotalPredictions = 0;
+bool g_MLInitialized = false;
+
+// Feature normalization
+double g_MLFeatureMin[30];
+double g_MLFeatureMax[30];
 
 //--------------------------------------------------------------------
-// INITIALIZE MACHINE LEARNING MODULE
+// INITIALIZE MACHINE LEARNING MODULE - ENHANCED
 //--------------------------------------------------------------------
 void ML_Initialize() {
-   Print("🤖 Initializing Machine Learning Module...");
+   Print("🤖 Initializing ENHANCED Machine Learning Module...");
 
-   // Initialize neural network weights (random small values)
-   for(int i = 0; i < 10; i++) {
-      g_MLWeights[i] = (MathRand() / 32768.0 - 0.5) * 0.1;  // Random -0.05 to 0.05
+   // Initialize multi-layer neural network weights (Xavier initialization)
+   // Layer 1: Input → Hidden (30 x 20)
+   double xavier_ih = MathSqrt(2.0 / (ML_INPUT_SIZE + ML_HIDDEN_SIZE));
+   for(int i = 0; i < ML_INPUT_SIZE; i++) {
+      for(int h = 0; h < ML_HIDDEN_SIZE; h++) {
+         g_MLWeights_IH[i][h] = (MathRand() / 32768.0 - 0.5) * 2.0 * xavier_ih;
+      }
    }
-   g_MLBias = 0.0;
+
+   // Hidden layer bias
+   for(int h = 0; h < ML_HIDDEN_SIZE; h++) {
+      g_MLBias_H[h] = 0.0;
+   }
+
+   // Layer 2: Hidden → Output (20 x 3)
+   double xavier_ho = MathSqrt(2.0 / (ML_HIDDEN_SIZE + ML_OUTPUT_SIZE));
+   for(int h = 0; h < ML_HIDDEN_SIZE; h++) {
+      for(int o = 0; o < ML_OUTPUT_SIZE; o++) {
+         g_MLWeights_HO[h][o] = (MathRand() / 32768.0 - 0.5) * 2.0 * xavier_ho;
+      }
+   }
+
+   // Output layer bias
+   for(int o = 0; o < ML_OUTPUT_SIZE; o++) {
+      g_MLBias_O[o] = 0.0;
+   }
+
+   // Initialize feature normalization
+   for(int i = 0; i < ML_INPUT_SIZE; i++) {
+      g_MLFeatureMin[i] = 999999;
+      g_MLFeatureMax[i] = -999999;
+   }
 
    // Load historical trade data for learning
-   ArrayResize(g_MLHistory, 1000);
+   ArrayResize(g_MLHistory, 2000);
    g_MLHistoryCount = 0;
+
+   g_MLAccuracy = 0.0;
+   g_MLCorrectPredictions = 0;
+   g_MLTotalPredictions = 0;
 
    g_MLInitialized = true;
 
-   Print("✓ ML Module initialized");
-   Print("   - Neural network weights initialized");
-   Print("   - Pattern recognition ready");
+   Print("✓ ENHANCED ML Module initialized");
+   Print("   - Multi-layer neural network: 30 → 20 → 3");
+   Print("   - Xavier weight initialization");
+   Print("   - Feature scaling enabled");
    Print("   - Confidence threshold: ", MLConfidenceThreshold, "%");
+   Print("   - Training period: ", MLTrainingPeriod, " bars");
+
+   // AUTO-TRAIN on historical data (if sufficient bars available)
+   if(UsePriceActionML && MLTrainingPeriod > 100) {
+      string symbol = Symbol();
+      int availableBars = iBars(symbol, PERIOD_H1);
+
+      if(availableBars >= MLTrainingPeriod) {
+         Print("🧠 Auto-training on ", MLTrainingPeriod, " historical bars...");
+         ML_TrainOnHistory(
+            symbol,
+            PERIOD_H1,
+            MLTrainingPeriod,
+            g_MLWeights_IH,
+            g_MLBias_H,
+            g_MLWeights_HO,
+            g_MLBias_O,
+            g_MLFeatureMin,
+            g_MLFeatureMax
+         );
+      } else {
+         Print("⚠ Not enough historical data for training (need ", MLTrainingPeriod, ", have ", availableBars, ")");
+      }
+   }
 }
 
 //--------------------------------------------------------------------
@@ -181,19 +264,17 @@ MLPattern ML_DetectCandlestickPatterns(string symbol, int timeframe) {
 }
 
 //--------------------------------------------------------------------
-// PRICE ACTION MACHINE LEARNING - Predict Next Move
+// ENHANCED FEATURE EXTRACTION - 30 Features
 //--------------------------------------------------------------------
-MLPrediction ML_PredictPriceAction(string symbol, int timeframe) {
-   MLPrediction prediction;
-   prediction.predictedChange = 0.0;
-   prediction.confidence = 50.0;  // Default: no confidence
-   prediction.direction = "NEUTRAL";
-   prediction.predictionTime = TimeCurrent();
+void ML_ExtractFeatures(string symbol, int timeframe, double &features[]) {
+   // Ensure array is sized correctly
+   if(ArraySize(features) < ML_INPUT_SIZE) {
+      ArrayResize(features, ML_INPUT_SIZE);
+   }
 
-   if(!UseMLPredictions || !g_MLInitialized) return prediction;
+   double close = iClose(symbol, timeframe, 0);
 
-   // Extract features for ML model
-   double features[10];
+   // === TREND INDICATORS (Features 0-7) ===
 
    // Feature 1: RSI (normalized 0-1)
    features[0] = iRSI(symbol, timeframe, 14, PRICE_CLOSE, 0) / 100.0;
@@ -205,7 +286,6 @@ MLPrediction ML_PredictPriceAction(string symbol, int timeframe) {
    features[2] = iADX(symbol, timeframe, 14, PRICE_CLOSE, MODE_MAIN, 0) / 100.0;
 
    // Feature 4: Price vs MA50 (normalized)
-   double close = iClose(symbol, timeframe, 0);
    double ma50 = iMA(symbol, timeframe, 50, 0, MODE_SMA, PRICE_CLOSE, 0);
    features[3] = (close - ma50) / ma50;  // % above/below MA
 
@@ -244,40 +324,81 @@ MLPrediction ML_PredictPriceAction(string symbol, int timeframe) {
       features[9] = 0.5;
    }
 
-   // Apply neural network (simple perceptron)
-   double activation = g_MLBias;
-   for(int i = 0; i < 10; i++) {
-      activation += features[i] * g_MLWeights[i];
+   // Additional features are extracted by ML_ExtractFeatures_Enhanced
+   // This function now just sets up the first 10 basic features
+}
+
+//--------------------------------------------------------------------
+// PRICE PREDICTION USING NEURAL NETWORK
+//--------------------------------------------------------------------
+MLPrediction ML_PredictPriceAction(string symbol, int timeframe) {
+   MLPrediction prediction;
+   prediction.direction = "NEUTRAL";
+   prediction.confidence = 50.0;
+   prediction.predictedChange = 0.0;
+   prediction.predictionTime = TimeCurrent();
+
+   if(!UseDeepLearning) return prediction;
+
+   // Extract ALL 30 features
+   double features[30];
+   ML_ExtractFeatures_Enhanced(symbol, timeframe, features);
+
+   // Normalize features
+   if(UseFeatureScaling) {
+      ML_NormalizeFeatures(features, g_MLFeatureMin, g_MLFeatureMax);
    }
 
-   // Sigmoid activation function (0 to 1)
-   double output = 1.0 / (1.0 + MathExp(-activation));
+   // Run forward pass through neural network
+   double output[3];  // [BUY, SELL, NEUTRAL] probabilities
+   ML_ForwardPass(features, g_MLWeights_IH, g_MLBias_H, g_MLWeights_HO, g_MLBias_O, output);
 
-   // Convert to prediction
-   if(output > 0.60) {
+   // Determine prediction from output probabilities
+   int predictedClass = 0;  // 0=BUY, 1=SELL, 2=NEUTRAL
+   double maxProb = output[0];
+
+   if(output[1] > maxProb) {
+      predictedClass = 1;
+      maxProb = output[1];
+   }
+   if(output[2] > maxProb) {
+      predictedClass = 2;
+      maxProb = output[2];
+   }
+
+   // Set prediction based on highest probability
+   if(predictedClass == 0) {
       prediction.direction = "UP";
-      prediction.confidence = (output - 0.5) * 200.0;  // Map 0.6-1.0 to 20-100%
-      prediction.predictedChange = (output - 0.5) * 2.0;  // % expected move
-   } else if(output < 0.40) {
+      prediction.confidence = maxProb * 100.0;
+      prediction.predictedChange = maxProb * 2.0;
+   } else if(predictedClass == 1) {
       prediction.direction = "DOWN";
-      prediction.confidence = (0.5 - output) * 200.0;
-      prediction.predictedChange = -(0.5 - output) * 2.0;
+      prediction.confidence = maxProb * 100.0;
+      prediction.predictedChange = -maxProb * 2.0;
    } else {
       prediction.direction = "NEUTRAL";
-      prediction.confidence = 50.0;
+      prediction.confidence = maxProb * 100.0;
       prediction.predictedChange = 0.0;
    }
 
+   // Calibrate confidence based on historical accuracy
+   if(g_MLAccuracy > 0.5) {
+      prediction.confidence = prediction.confidence * g_MLAccuracy;
+   }
+
    if(VerboseLogging) {
-      Print("🤖 ML Prediction: ", prediction.direction,
-            " (Confidence: ", DoubleToString(prediction.confidence, 1), "%)");
+      Print("🤖 ML Neural Network: ", prediction.direction,
+            " | Conf: ", DoubleToString(prediction.confidence, 1), "%",
+            " | Probs: BUY=", DoubleToString(output[0]*100, 1),
+            "% SELL=", DoubleToString(output[1]*100, 1),
+            "% NEUTRAL=", DoubleToString(output[2]*100, 1), "%");
    }
 
    return prediction;
 }
 
 //--------------------------------------------------------------------
-// COMBINED ML SIGNAL - Pattern + Price Action
+// ENHANCED COMBINED ML SIGNAL - Pattern + Neural Network Prediction
 //--------------------------------------------------------------------
 bool ML_GetTradingSignal(string symbol, int timeframe, bool &isBullish, double &confidence) {
    if(!UseMLPredictions) return false;
@@ -285,33 +406,41 @@ bool ML_GetTradingSignal(string symbol, int timeframe, bool &isBullish, double &
    // Get pattern recognition
    MLPattern pattern = ML_DetectCandlestickPatterns(symbol, timeframe);
 
-   // Get price action prediction
+   // Get ENHANCED price action prediction (30 features, deep learning)
    MLPrediction prediction = ML_PredictPriceAction(symbol, timeframe);
 
-   // Combine signals
-   bool hasPattern = (pattern.confidence > 50.0);
-   bool hasPrediction = (prediction.confidence > MLConfidenceThreshold);
+   // Track prediction for accuracy calculation
+   g_MLTotalPredictions++;
 
-   // Both agree?
-   if(hasPattern && hasPrediction) {
+   // Combine signals with SMART weighting
+   bool hasPattern = (pattern.confidence > 55.0);
+   bool hasStrongPrediction = (prediction.confidence > MLConfidenceThreshold);
+   bool hasWeakPrediction = (prediction.confidence > 60.0);
+
+   // STRATEGY 1: Both neural network AND pattern agree (HIGHEST CONFIDENCE)
+   if(hasPattern && hasStrongPrediction) {
       bool patternBullish = pattern.isBullish;
       bool predictionBullish = (prediction.direction == "UP");
 
       if(patternBullish == predictionBullish) {
-         // Strong agreement!
+         // Perfect alignment - both agree!
          isBullish = patternBullish;
-         confidence = (pattern.confidence + prediction.confidence) / 2.0;
+         // Weight neural network MORE (70%) since it has 30 features
+         confidence = (pattern.confidence * 0.3) + (prediction.confidence * 0.7);
 
          if(VerboseLogging) {
             Print("╔════════════════════════════════════════╗");
-            Print("║  🤖 ML SIGNAL CONFIRMED               ║");
+            Print("║  🎯 ML SUPER SIGNAL - BOTH AGREE!     ║");
             Print("╠════════════════════════════════════════╣");
             Print("║ Pattern: ", pattern.patternName);
             Print("║ Pattern Conf: ", DoubleToString(pattern.confidence, 1), "%");
-            Print("║ ML Prediction: ", prediction.direction);
-            Print("║ ML Conf: ", DoubleToString(prediction.confidence, 1), "%");
+            Print("║ Neural Network: ", prediction.direction);
+            Print("║ Network Conf: ", DoubleToString(prediction.confidence, 1), "%");
             Print("║ COMBINED: ", (isBullish ? "BULLISH" : "BEARISH"));
-            Print("║ Confidence: ", DoubleToString(confidence, 1), "%");
+            Print("║ Final Conf: ", DoubleToString(confidence, 1), "%");
+            if(g_MLAccuracy > 0) {
+               Print("║ ML Accuracy: ", DoubleToString(g_MLAccuracy * 100, 1), "%");
+            }
             Print("╚════════════════════════════════════════╝");
          }
 
@@ -319,28 +448,43 @@ bool ML_GetTradingSignal(string symbol, int timeframe, bool &isBullish, double &
       }
    }
 
-   // Only price action prediction (no pattern)
-   if(!hasPattern && hasPrediction) {
+   // STRATEGY 2: Strong neural network prediction alone (no pattern needed)
+   if(hasStrongPrediction && prediction.confidence > MLConfidenceThreshold) {
       isBullish = (prediction.direction == "UP");
       confidence = prediction.confidence;
 
+      // Adjust confidence based on historical accuracy
+      if(g_MLAccuracy > 0.5) {
+         confidence = confidence * g_MLAccuracy;  // Scale by accuracy
+      }
+
       if(VerboseLogging) {
-         Print("🤖 ML Signal: ", prediction.direction, " (", DoubleToString(confidence, 1), "%)");
+         Print("🤖 ML NEURAL NETWORK SIGNAL: ", prediction.direction);
+         Print("   Confidence: ", DoubleToString(confidence, 1), "%");
+         if(g_MLAccuracy > 0) {
+            Print("   Historical Accuracy: ", DoubleToString(g_MLAccuracy * 100, 1), "%");
+         }
       }
 
       return true;
    }
 
-   // Only pattern (no strong prediction)
-   if(hasPattern && !hasPrediction) {
-      isBullish = pattern.isBullish;
-      confidence = pattern.confidence;
+   // STRATEGY 3: Strong pattern + weak neural network confirmation
+   if(hasPattern && hasWeakPrediction) {
+      bool patternBullish = pattern.isBullish;
+      bool predictionBullish = (prediction.direction == "UP");
 
-      if(VerboseLogging) {
-         Print("📊 Pattern: ", pattern.patternName, " (", DoubleToString(confidence, 1), "%)");
+      if(patternBullish == predictionBullish) {
+         isBullish = patternBullish;
+         confidence = pattern.confidence;
+
+         if(VerboseLogging) {
+            Print("📊 PATTERN SIGNAL (ML confirmed): ", pattern.patternName);
+            Print("   Confidence: ", DoubleToString(confidence, 1), "%");
+         }
+
+         return (confidence > MLConfidenceThreshold - 10);  // Lower threshold
       }
-
-      return (confidence > MLConfidenceThreshold);
    }
 
    return false;
@@ -369,21 +513,20 @@ void ML_RecordTradeResult(bool wasBullish, double entryPrice, double exitPrice, 
       g_MLHistoryCount++;
    }
 
-   // Adaptive learning: Adjust weights based on error
-   double learningRate = 0.01;  // Small learning rate
-   double error = wasCorrect ? 0.1 : -0.1;  // Simple reward/penalty
+   // Update accuracy tracker
+   if(wasCorrect) g_MLCorrectPredictions++;
 
-   // Update bias
-   g_MLBias += learningRate * error;
-
-   // Update weights (simplified - in reality would re-extract features)
-   for(int i = 0; i < 10; i++) {
-      g_MLWeights[i] += learningRate * error * 0.5;  // Scaled adjustment
+   // Calculate running accuracy
+   if(g_MLHistoryCount > 0) {
+      g_MLAccuracy = (double)g_MLCorrectPredictions / (double)g_MLHistoryCount;
    }
 
+   // Adaptive learning would update neural network weights here
+   // For now, we track accuracy and use it to calibrate confidence
    if(VerboseLogging) {
       Print("🧠 ML Learning: Trade ", (wasCorrect ? "✓ SUCCESS" : "✗ FAILED"),
-            " (", DoubleToString(changePercent, 2), "%) - Weights updated");
+            " (", DoubleToString(changePercent, 2), "%) | Accuracy: ",
+            DoubleToString(g_MLAccuracy * 100, 1), "%");
    }
 }
 

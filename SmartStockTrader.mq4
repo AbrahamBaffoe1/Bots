@@ -16,6 +16,7 @@
 //--------------------------------------------------------------------
 #include "Include/SST_LicenseManager.mqh"
 #include "Include/SST_Config.mqh"
+#include "Include/SST_Logger.mqh"
 #include "Include/SST_SessionManager.mqh"
 #include "Include/SST_Indicators.mqh"
 #include "Include/SST_PatternRecognition.mqh"
@@ -47,6 +48,8 @@ int OnInit() {
 
    // Initialize all modules
    Config_Init();
+   Logger_Init(LOG_INFO, true, false, true); // Enable console + remote logging
+   Logger_Info(CAT_SYSTEM, "SmartStockTrader EA v1.0 starting");
    Session_Init();
    Risk_Init();
    Structure_Init();
@@ -122,6 +125,7 @@ void OnDeinit(const int reason) {
    // Cleanup
    Analytics_Deinit();
    Dashboard_Remove();
+   Logger_Shutdown();
 
    if(SendNotifications) {
       SendNotification("Smart Stock Trader: EA stopped");
@@ -134,6 +138,9 @@ void OnDeinit(const int reason) {
 // ON TICK - MAIN TRADING LOGIC
 //--------------------------------------------------------------------
 void OnTick() {
+   // Update logger (flush remote logs periodically)
+   Logger_Update();
+
    // Update session status
    Session_Update();
 

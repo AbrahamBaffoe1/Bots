@@ -463,3 +463,197 @@ exports.stopBot = async (req, res) => {
 };
 
 module.exports = exports;
+
+// ============================================================================
+// LOGS & MONITORING (MT4 EA Integration)
+// ============================================================================
+
+// Submit single log entry (called by MT4 EA)
+exports.submitLog = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { log_level, category, message, metadata } = req.body;
+
+    // Validate bot ownership
+    const bot = await BotInstance.findOne({
+      where: {
+        id: id,
+        user_id: req.user.id
+      }
+    });
+
+    if (!bot) {
+      return res.status(404).json({
+        success: false,
+        message: 'Bot instance not found'
+      });
+    }
+
+    // Validate required fields
+    if (!log_level || !category || !message) {
+      return res.status(400).json({
+        success: false,
+        message: 'log_level, category, and message are required'
+      });
+    }
+
+    // Validate log level
+    const validLogLevels = ['INFO', 'WARNING', 'ERROR', 'DEBUG'];
+    if (!validLogLevels.includes(log_level.toUpperCase())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid log_level. Must be one of: INFO, WARNING, ERROR, DEBUG'
+      });
+    }
+
+    // Create log entry
+    const log = await BotLog.create({
+      bot_instance_id: bot.id,
+      log_level: log_level.toUpperCase(),
+      category: category.toUpperCase(),
+      message: message,
+      metadata: metadata || null
+    });
+
+    res.json({
+      success: true,
+      message: 'Log submitted successfully',
+      data: {
+        log_id: log.id,
+        created_at: log.created_at
+      }
+    });
+  } catch (error) {
+    console.error('Submit log error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to submit log',
+      error: error.message
+    });
+  }
+};
+
+// Submit multiple logs in batch (called by MT4 EA for efficiency)
+exports.submitLogsBatch = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { logs } = req.body;
+
+    // Validate bot ownership
+    const bot = await BotInstance.findOne({
+      where: {
+        id: id,
+        user_id: req.user.id
+      }
+    });
+
+    if (!bot) {
+      return res.status(404).json({
+        success: false,
+        message: 'Bot instance not found'
+      });
+    }
+
+    // Validate logs array
+    if (!Array.isArray(logs) || logs.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'logs must be a non-empty array'
+      });
+    }
+
+    // Validate and prepare log entries
+    const validLogLevels = ['INFO', 'WARNING', 'ERROR', 'DEBUG'];
+    const logEntries = [];
+
+    for (const log of logs) {
+      if (!log.log_level || !log.category || !log.message) {
+        return res.status(400).json({
+          success: false,
+          message: 'Each log must have log_level, category, and message'
+        });
+      }
+
+      if (!validLogLevels.includes(log.log_level.toUpperCase())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid log_level. Must be one of: INFO, WARNING, ERROR, DEBUG'
+        });
+      }
+
+      logEntries.push({
+        bot_instance_id: bot.id,
+        log_level: log.log_level.toUpperCase(),
+        category: log.category.toUpperCase(),
+        message: log.message,
+        metadata: log.metadata || null
+      });
+    }
+
+    // Bulk create logs
+    const createdLogs = await BotLog.bulkCreate(logEntries);
+
+    res.json({
+      success: true,
+      message: createdLogs.length + ' logs submitted successfully',
+      data: {
+        count: createdLogs.length,
+        logs: createdLogs.map(l => ({ id: l.id, created_at: l.created_at }))
+      }
+    });
+  } catch (error) {
+    console.error('Submit logs batch error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to submit logs',
+      error: error.message
+    });
+  }
+};
+
+// Get logs for a bot
+exports.getBotLogs = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { limit = 50, log_level, category } = req.query;
+
+    // Validate bot ownership
+    const bot = await BotInstance.findOne({
+      where: {
+        id: id,
+        user_id: req.user.id
+      }
+    });
+
+    if (!bot) {
+      return res.status(404).json({
+        success: false,
+        message: 'Bot instance not found'
+      });
+    }
+
+    // Build where clause
+    const where = { bot_instance_id: bot.id };
+    if (log_level) where.log_level = log_level.toUpperCase();
+    if (category) where.category = category.toUpperCase();
+
+    // Fetch logs
+    const logs = await BotLog.findAll({
+      where,
+      limit: parseInt(limit),
+      order: [['created_at', 'DESC']]
+    });
+
+    res.json({
+      success: true,
+      data: logs
+    });
+  } catch (error) {
+    console.error('Get bot logs error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch logs',
+      error: error.message
+    });
+  }
+};

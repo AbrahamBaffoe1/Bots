@@ -62,7 +62,7 @@ struct APIConfig {
       enableTradeSync = true;
       enableHeartbeat = true;
       enablePerformanceSync = true;
-      enableLogSync = false; // Disabled by default to reduce load
+      enableLogSync = true; // Enabled by default for monitoring
 
       // Timing Defaults
       heartbeatIntervalSeconds = 60;       // Every 1 minute

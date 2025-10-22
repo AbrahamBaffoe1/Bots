@@ -17,6 +17,11 @@ router.post('/:id/stop', auth, botControllerEA.stopBot);
 // Heartbeat (called by MT4 EA)
 router.post('/:id/heartbeat', auth, botControllerEA.updateHeartbeat);
 
+// Logs (called by MT4 EA)
+router.post('/:id/logs', auth, botControllerEA.submitLog);
+router.post('/:id/logs/batch', auth, botControllerEA.submitLogsBatch);
+router.get('/:id/logs', auth, botControllerEA.getBotLogs);
+
 // Statistics
 router.get('/:id/stats', auth, botControllerEA.getBotStats);
 

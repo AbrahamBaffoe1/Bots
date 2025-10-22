@@ -54,6 +54,8 @@ static string g_LogFilePath = "";
 static LogEntry g_LogBuffer[];
 static int g_LogBufferSize = 0;
 static const int g_LogBufferMaxSize = 100;
+static datetime g_NextLogFlush = 0;
+static const int g_LogFlushIntervalSeconds = 30; // Flush logs every 30 seconds
 
 //--------------------------------------------------------------------
 // INITIALIZATION
@@ -75,6 +77,9 @@ bool Logger_Init(
 
    ArrayResize(g_LogBuffer, 0);
    g_LogBufferSize = 0;
+
+   // Initialize remote logging timer
+   g_NextLogFlush = TimeCurrent() + g_LogFlushIntervalSeconds;
 
    // Initialize file logging if enabled
    if(g_EnableFileLogging) {
@@ -294,17 +299,113 @@ void Logger_ClearBuffer() {
    g_LogBufferSize = 0;
 }
 
-// Flush buffer (placeholder for remote send)
+// Flush buffer (send to remote server)
 void Logger_FlushBuffer() {
    if(g_LogBufferSize == 0) {
       return;
    }
 
-   // TODO: Implement remote log sending via SST_TradeSync module
-   Logger_Debug(CAT_SYSTEM, "Flushing log buffer", "Entries: " + IntegerToString(g_LogBufferSize));
+   if(!g_EnableRemoteLogging) {
+      Logger_ClearBuffer();
+      return;
+   }
 
-   // For now, just clear the buffer
-   Logger_ClearBuffer();
+   // Import required modules for API communication
+   #ifdef __MQL4__
+      #import "SST_WebAPI.mqh"
+         HttpResponse WebAPI_POST(string url, string jsonBody, string authToken);
+      #endimport
+
+      #import "SST_APIConfig.mqh"
+         bool APIConfig_IsAuthenticated();
+         string APIConfig_GetBotInstanceId();
+         string APIConfig_GetAuthToken();
+         string APIConfig_GetBaseUrl();
+      #endimport
+
+      #import "SST_JSON.mqh"
+         string JSON_Escape(string str);
+      #endimport
+   #endif
+
+   // Check prerequisites
+   if(!APIConfig_IsAuthenticated()) {
+      Logger_Debug(CAT_SYSTEM, "Cannot flush logs - not authenticated");
+      Logger_ClearBuffer();
+      return;
+   }
+
+   string botId = APIConfig_GetBotInstanceId();
+   if(botId == "") {
+      Logger_Debug(CAT_SYSTEM, "Cannot flush logs - no bot ID");
+      Logger_ClearBuffer();
+      return;
+   }
+
+   // Build JSON array of logs
+   string jsonLogs = "[";
+   for(int i = 0; i < g_LogBufferSize; i++) {
+      if(i > 0) jsonLogs += ",";
+
+      LogEntry entry = g_LogBuffer[i];
+
+      // Map LOG_LEVEL to backend format
+      string level = "";
+      switch(entry.level) {
+         case LOG_DEBUG:    level = "DEBUG"; break;
+         case LOG_INFO:     level = "INFO"; break;
+         case LOG_WARN:     level = "WARNING"; break;
+         case LOG_ERROR:    level = "ERROR"; break;
+         case LOG_CRITICAL: level = "ERROR"; break; // Map CRITICAL to ERROR
+      }
+
+      // Map category to backend format
+      string category = Logger_CategoryToString(entry.category);
+
+      // Escape message and metadata
+      string escapedMessage = JSON_Escape(entry.message);
+      string escapedMetadata = JSON_Escape(entry.metadata);
+
+      // Build log object
+      jsonLogs += "{";
+      jsonLogs += "\"log_level\":\"" + level + "\",";
+      jsonLogs += "\"category\":\"" + category + "\",";
+      jsonLogs += "\"message\":\"" + escapedMessage + "\"";
+
+      if(entry.metadata != "") {
+         jsonLogs += ",\"metadata\":{\"data\":\"" + escapedMetadata + "\"}";
+      }
+
+      jsonLogs += "}";
+   }
+   jsonLogs += "]";
+
+   // Build request body
+   string jsonBody = "{\"logs\":" + jsonLogs + "}";
+
+   // Build URL
+   string baseUrl = APIConfig_GetBaseUrl();
+   string url = baseUrl + "/api/bots/" + botId + "/logs/batch";
+
+   // Get auth token
+   string authToken = APIConfig_GetAuthToken();
+
+   // Send logs
+   Print("[LOGGER] Flushing ", g_LogBufferSize, " logs to remote server");
+
+   HttpResponse response = WebAPI_POST(url, jsonBody, authToken);
+
+   if(response.isSuccess) {
+      Print("[LOGGER] ✓ Successfully sent ", g_LogBufferSize, " logs to server");
+      Logger_ClearBuffer();
+   } else {
+      Print("[LOGGER] ✗ Failed to send logs. Status: ", response.statusCode, " | Error: ", response.errorMessage);
+      // Keep logs in buffer for retry, but limit buffer size
+      if(g_LogBufferSize > g_LogBufferMaxSize * 2) {
+         Print("[LOGGER] ⚠ Buffer overflow - clearing old logs");
+         Logger_ClearBuffer();
+      }
+   }
 }
 
 //--------------------------------------------------------------------
@@ -358,6 +459,31 @@ void Logger_PrintStats() {
       Print("║ Log File:        ", g_LogFilePath);
    }
    Print("╚════════════════════════════════════════╝");
+}
+
+//--------------------------------------------------------------------
+// UPDATE (Call from OnTick for periodic flushing)
+//--------------------------------------------------------------------
+void Logger_Update() {
+   if(!g_LoggerInitialized) {
+      return;
+   }
+
+   if(!g_EnableRemoteLogging) {
+      return;
+   }
+
+   // Check if it's time to flush
+   if(TimeCurrent() >= g_NextLogFlush && g_LogBufferSize > 0) {
+      Logger_FlushBuffer();
+      g_NextLogFlush = TimeCurrent() + g_LogFlushIntervalSeconds;
+   }
+
+   // Also flush if buffer is getting full (75% capacity)
+   if(g_LogBufferSize >= (g_LogBufferMaxSize * 3) / 4) {
+      Logger_FlushBuffer();
+      g_NextLogFlush = TimeCurrent() + g_LogFlushIntervalSeconds;
+   }
 }
 
 //--------------------------------------------------------------------

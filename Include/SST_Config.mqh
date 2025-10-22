@@ -143,7 +143,6 @@ extern bool    ShowDashboard         = true;         // Display on-chart dashboa
 extern bool    DebugMode             = false;        // Enable debug logging
 
 //=== Backtesting & Optimization ===
-extern bool    BacktestMode          = false;        // Enable backtest optimizations
 extern bool    ShowBacktestStats     = true;         // Show detailed backtest stats
 
 //--------------------------------------------------------------------
@@ -185,9 +184,6 @@ enum EA_STATE {
    STATE_NEWS_PAUSE
 };
 EA_STATE g_EAState = STATE_READY;
-
-// File handles
-int g_LogFileHandle = INVALID_HANDLE;
 
 // Trade tracking structure
 struct TradeInfo {

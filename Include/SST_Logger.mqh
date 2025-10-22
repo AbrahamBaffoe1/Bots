@@ -310,24 +310,6 @@ void Logger_FlushBuffer() {
       return;
    }
 
-   // Import required modules for API communication
-   #ifdef __MQL4__
-      #import "SST_WebAPI.mqh"
-         HttpResponse WebAPI_POST(string url, string jsonBody, string authToken);
-      #endimport
-
-      #import "SST_APIConfig.mqh"
-         bool APIConfig_IsAuthenticated();
-         string APIConfig_GetBotInstanceId();
-         string APIConfig_GetAuthToken();
-         string APIConfig_GetBaseUrl();
-      #endimport
-
-      #import "SST_JSON.mqh"
-         string JSON_Escape(string str);
-      #endimport
-   #endif
-
    // Check prerequisites
    if(!APIConfig_IsAuthenticated()) {
       Logger_Debug(CAT_SYSTEM, "Cannot flush logs - not authenticated");

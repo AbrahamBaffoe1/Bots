@@ -485,13 +485,18 @@ int GetMarketRegime(string sym)
 {
    double adx = iADX(sym, PERIOD_H1, 14, PRICE_CLOSE, MODE_MAIN, 0);
    double atr = iATR(sym, PERIOD_H1, 14, 0);
-   // If ADX is high and ATR is moderately high, consider it trending.
-   if(adx >= 25 && atr > 0.0010)
+
+   // Lowered ADX threshold from 25 to 20 for better trend detection
+   // If ADX is high, consider it trending
+   if(adx >= 20)
       return 1;  // Trend
+
+   // Otherwise it's ranging - mean reversion active
+   Print("[", sym, "] RANGE MODE: ADX=", DoubleToString(adx, 1), " (threshold: 20)");
    return 2;      // Range
 }
 
-// 5.2 Supply/Demand Zone using previous daily pivot
+// 5.2 Supply/Demand Zone using previous daily pivot - RELAXED
 bool CheckSupplyDemandZone(string sym, double price)
 {
    // MQL4 compatible implementation
@@ -502,18 +507,31 @@ bool CheckSupplyDemandZone(string sym, double price)
    if(high == 0 || low == 0 || close == 0) return false;
 
    double pivot = (high + low + close) / 3.0;
-   double threshold = (high - low) * 0.1;
-   return (MathAbs(price - pivot) <= threshold);
+   // RELAXED: Increased threshold from 10% to 30% of daily range
+   double threshold = (high - low) * 0.3;
+
+   bool inZone = (MathAbs(price - pivot) <= threshold);
+   if(inZone)
+      Print("[", sym, "] Supply/Demand Zone: Price=", price, " Pivot=", pivot, " Threshold=", threshold);
+
+   return inZone;
 }
 
 // 5.3 Mean Reversion Strategy using Bollinger Bands and RSI on M5
 bool CheckMeanReversionBuySignal(string sym, double &slDist, double &tpDist)
 {
    double lowerBand = iBands(sym, PERIOD_M5, 20, 2, 0, PRICE_CLOSE, MODE_LOWER, 0);
+   double middleBand = iBands(sym, PERIOD_M5, 20, 2, 0, PRICE_CLOSE, MODE_MAIN, 0);
    double price = iClose(sym, PERIOD_M5, 0);
    double rsi = iRSI(sym, PERIOD_M5, RSI_Period, PRICE_CLOSE, 0);
-   if(price <= lowerBand && rsi < 30)
+
+   // Relaxed conditions: price near lower band (within 1.5 std dev) AND oversold RSI
+   bool nearLowerBand = (price <= lowerBand * 1.02); // Allow 2% tolerance
+   bool oversold = (rsi < 35); // Relaxed from 30 to 35
+
+   if(nearLowerBand && oversold)
    {
+      Print("[", sym, "] Mean Reversion BUY signal: Price=", price, " LowerBand=", lowerBand, " RSI=", rsi);
       if(UseAdaptiveStops)
       {
          double atrVal = iATR(sym, PERIOD_M5, 14, 0);
@@ -534,10 +552,17 @@ bool CheckMeanReversionBuySignal(string sym, double &slDist, double &tpDist)
 bool CheckMeanReversionSellSignal(string sym, double &slDist, double &tpDist)
 {
    double upperBand = iBands(sym, PERIOD_M5, 20, 2, 0, PRICE_CLOSE, MODE_UPPER, 0);
+   double middleBand = iBands(sym, PERIOD_M5, 20, 2, 0, PRICE_CLOSE, MODE_MAIN, 0);
    double price = iClose(sym, PERIOD_M5, 0);
    double rsi = iRSI(sym, PERIOD_M5, RSI_Period, PRICE_CLOSE, 0);
-   if(price >= upperBand && rsi > 70)
+
+   // Relaxed conditions: price near upper band (within 1.5 std dev) AND overbought RSI
+   bool nearUpperBand = (price >= upperBand * 0.98); // Allow 2% tolerance
+   bool overbought = (rsi > 65); // Relaxed from 70 to 65
+
+   if(nearUpperBand && overbought)
    {
+      Print("[", sym, "] Mean Reversion SELL signal: Price=", price, " UpperBand=", upperBand, " RSI=", rsi);
       if(UseAdaptiveStops)
       {
          double atrVal = iATR(sym, PERIOD_M5, 14, 0);
@@ -555,7 +580,7 @@ bool CheckMeanReversionSellSignal(string sym, double &slDist, double &tpDist)
    return false;
 }
 
-// 5.4 Price Action Confirmation (Pin Bar Detection)
+// 5.4 Price Action Confirmation (Pin Bar Detection) - RELAXED for more signals
 bool CheckPriceActionConfirmation(string sym, bool isBuy)
 {
    // MQL4 compatible implementation
@@ -573,15 +598,24 @@ bool CheckPriceActionConfirmation(string sym, bool isBuy)
    double lowerShadow = MathMin(open, close) - low;
    double upperShadow = high - MathMax(open, close);
 
+   // RELAXED CONDITIONS for mean reversion
    if(isBuy)
    {
-      if(body < 0.3 * range && lowerShadow > 2 * body && upperShadow < 0.1 * range)
+      // Look for bullish bias: lower shadow > upper shadow (buying pressure)
+      if(lowerShadow > upperShadow * 1.5)
+      {
+         Print("[", sym, "] Price Action BUY confirmation: LowerShadow=", lowerShadow, " > UpperShadow=", upperShadow);
          return true;
+      }
    }
    else
    {
-      if(body < 0.3 * range && upperShadow > 2 * body && lowerShadow < 0.1 * range)
+      // Look for bearish bias: upper shadow > lower shadow (selling pressure)
+      if(upperShadow > lowerShadow * 1.5)
+      {
+         Print("[", sym, "] Price Action SELL confirmation: UpperShadow=", upperShadow, " > LowerShadow=", lowerShadow);
          return true;
+      }
    }
    return false;
 }
@@ -1309,40 +1343,68 @@ void OnTick()
       bool mrBuy = false, mrSell = false;
       bool paBuy = false, paSell = false;
       bool sdZone = false;
-      
+
       // For trend regime (market trending), use traditional technical signals
       if(regime == 1)
       {
+         // TREND MODE: Using strict MA crossover strategy
          techBuy = CheckBuySignal(sym, slDist, tpDist);
          techSell = CheckSellSignal(sym, slDist, tpDist);
       }
       else // for range regime, use mean reversion + price action confirmation + S/D zone
       {
+         // RANGE MODE: Using mean reversion strategy
          mrBuy = CheckMeanReversionBuySignal(sym, slDist, tpDist);
          mrSell = CheckMeanReversionSellSignal(sym, slDist, tpDist);
+
          if(mrBuy)
+         {
             paBuy = CheckPriceActionConfirmation(sym, true);
+            sdZone = CheckSupplyDemandZone(sym, iClose(sym, PERIOD_M5, 0));
+            Print("[", sym, "] Mean Reversion BUY check: MR=", mrBuy, " PA=", paBuy, " SD=", sdZone);
+         }
          if(mrSell)
+         {
             paSell = CheckPriceActionConfirmation(sym, false);
-         sdZone = CheckSupplyDemandZone(sym, iClose(sym, PERIOD_M1, 0));
+            sdZone = CheckSupplyDemandZone(sym, iClose(sym, PERIOD_M5, 0));
+            Print("[", sym, "] Mean Reversion SELL check: MR=", mrSell, " PA=", paSell, " SD=", sdZone);
+         }
       }
       
       // Final decision logic based on regime
       bool finalBuy = false;
       bool finalSell = false;
+      string tradeMode = "";
+
       if(regime == 1)
       {
+         // TREND MODE
          if(techBuy)
+         {
             finalBuy = true;
+            tradeMode = "TREND";
+         }
          else if(techSell)
+         {
             finalSell = true;
+            tradeMode = "TREND";
+         }
       }
       else
       {
+         // RANGE MODE - Mean Reversion
          if(mrBuy && paBuy && sdZone)
+         {
             finalBuy = true;
+            tradeMode = "MEAN_REVERSION";
+            Print("[", sym, "] *** MEAN REVERSION BUY TRIGGERED ***");
+         }
          else if(mrSell && paSell && sdZone)
+         {
             finalSell = true;
+            tradeMode = "MEAN_REVERSION";
+            Print("[", sym, "] *** MEAN REVERSION SELL TRIGGERED ***");
+         }
       }
       
       // Correlation filtering
@@ -1359,19 +1421,20 @@ void OnTick()
          double tp = ask + tpDist * pip;
          double lot = CalculateLotSize(sym, slDist);
          Print("========================================");
-         Print("[", sym, "] *** BUY SIGNAL CONFIRMED ***");
+         Print("[", sym, "] *** BUY SIGNAL CONFIRMED - ", tradeMode, " MODE ***");
          Print("  Price: ", ask);
          Print("  Lot Size: ", lot);
          Print("  SL Distance: ", slDist, " pips");
          Print("  TP Distance: ", tpDist, " pips");
          Print("========================================");
-         int ticket = RobustOrderSend(sym, OP_BUY, lot, ask, 3, sl, tp, "UltraBot BUY");
+         string comment = "UltraBot BUY [" + tradeMode + "]";
+         int ticket = RobustOrderSend(sym, OP_BUY, lot, ask, 3, sl, tp, comment);
          if(ticket >= 0)
          {
-            LogTrade(ticket, "BUY", TimeCurrent(), ask, 0, 0, "Opened");
+            LogTrade(ticket, "BUY", TimeCurrent(), ask, 0, 0, "Opened [" + tradeMode + "]");
             TrackNewTrade(ticket);
             Print("[", sym, "] ✓ BUY order opened successfully! Ticket #", ticket);
-            Notify("UltraBot: New BUY " + sym + " @ " + DoubleToString(ask, _Digits) +
+            Notify("UltraBot: New BUY [" + tradeMode + "] " + sym + " @ " + DoubleToString(ask, _Digits) +
                    " | Lot=" + DoubleToString(lot, 2) + " | SL=" + DoubleToString(slDist, 1) + "pips");
          }
          else
@@ -1386,19 +1449,20 @@ void OnTick()
          double tp = bid - tpDist * pip;
          double lot = CalculateLotSize(sym, slDist);
          Print("========================================");
-         Print("[", sym, "] *** SELL SIGNAL CONFIRMED ***");
+         Print("[", sym, "] *** SELL SIGNAL CONFIRMED - ", tradeMode, " MODE ***");
          Print("  Price: ", bid);
          Print("  Lot Size: ", lot);
          Print("  SL Distance: ", slDist, " pips");
          Print("  TP Distance: ", tpDist, " pips");
          Print("========================================");
-         int ticket = RobustOrderSend(sym, OP_SELL, lot, bid, 3, sl, tp, "UltraBot SELL");
+         string comment = "UltraBot SELL [" + tradeMode + "]";
+         int ticket = RobustOrderSend(sym, OP_SELL, lot, bid, 3, sl, tp, comment);
          if(ticket >= 0)
          {
-            LogTrade(ticket, "SELL", TimeCurrent(), bid, 0, 0, "Opened");
+            LogTrade(ticket, "SELL", TimeCurrent(), bid, 0, 0, "Opened [" + tradeMode + "]");
             TrackNewTrade(ticket);
             Print("[", sym, "] ✓ SELL order opened successfully! Ticket #", ticket);
-            Notify("UltraBot: New SELL " + sym + " @ " + DoubleToString(bid, _Digits) +
+            Notify("UltraBot: New SELL [" + tradeMode + "] " + sym + " @ " + DoubleToString(bid, _Digits) +
                    " | Lot=" + DoubleToString(lot, 2) + " | SL=" + DoubleToString(slDist, 1) + "pips");
          }
          else

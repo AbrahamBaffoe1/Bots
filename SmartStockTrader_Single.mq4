@@ -1062,7 +1062,15 @@ double CalculateLotSize(string symbol, double slPips) {
    if(tickValue <= 0) tickValue = 1.0;
    if(point <= 0) point = 0.00001;
 
+   // CRITICAL FIX: Prevent division by zero for slPips
+   if(slPips <= 0) {
+      Print("ERROR: slPips is zero or negative (", slPips, "), using minimum default of 10 pips");
+      slPips = 10.0;  // Default minimum SL
+   }
+
    double pipValue = tickValue * 10.0;
+   if(pipValue <= 0) pipValue = 10.0;  // Additional safety check
+
    double lotSize = riskAmount / (slPips * pipValue);
 
    double minLot = MarketInfo(symbol, MODE_MINLOT);
@@ -1730,11 +1738,27 @@ void ExecuteTrade(string symbol, bool isBuy, double mlConfidence = 0.0) {
       point = 0.01;  // Default to 0.01 for stocks
    }
 
+   // CRITICAL FIX: Ensure ATR is valid
+   if(atr <= 0) {
+      Print("WARNING: ATR is zero or negative (", atr, ") - using default based on point size");
+      atr = point * 100.0;  // Default ATR = 100 points
+   }
+
    // ════════════════════════════════════════════════════════════════
    // PHASE 1: VOLATILITY-ADJUSTED SL/TP
    // ════════════════════════════════════════════════════════════════
    double volSLMultiplier = Volatility_GetSLMultiplier(symbol, PERIOD_H1);
    double volTPMultiplier = Volatility_GetTPMultiplier(symbol, PERIOD_H1);
+
+   // CRITICAL FIX: Ensure volatility multipliers are valid
+   if(volSLMultiplier <= 0 || volSLMultiplier > 10.0) {
+      Print("WARNING: Invalid volSLMultiplier (", volSLMultiplier, ") - using default 1.0");
+      volSLMultiplier = 1.0;
+   }
+   if(volTPMultiplier <= 0 || volTPMultiplier > 10.0) {
+      Print("WARNING: Invalid volTPMultiplier (", volTPMultiplier, ") - using default 1.0");
+      volTPMultiplier = 1.0;
+   }
 
    // Calculate SL/TP with volatility adjustment - FIXED division by zero
    double baseSLPips = FixedStopLossPips;
@@ -1747,6 +1771,16 @@ void ExecuteTrade(string symbol, bool isBuy, double mlConfidence = 0.0) {
 
    double slPips = baseSLPips * volSLMultiplier;
    double tpPips = baseTPPips * volTPMultiplier;
+
+   // CRITICAL FIX: Ensure slPips and tpPips are never zero
+   if(slPips <= 0) {
+      Print("WARNING: slPips calculated as ", slPips, " - using default ", FixedStopLossPips);
+      slPips = FixedStopLossPips;
+   }
+   if(tpPips <= 0) {
+      Print("WARNING: tpPips calculated as ", tpPips, " - using default ", FixedTakeProfitPips);
+      tpPips = FixedTakeProfitPips;
+   }
 
    if(VerboseLogging) {
       VOLATILITY_REGIME volRegime = Volatility_GetRegime(symbol, PERIOD_H1);

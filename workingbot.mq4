@@ -25,13 +25,8 @@ extern int     Session2End          = 17;
 
 // Primary Trend Indicators (H1 and M5)
 extern int     H1_MA_Period         = 50;        // H1 SMA period (trend filter)
-extern int     M5_MA_Period         = 20;        // M5 SMA period (entry timing) - INCREASED from 10 to 20 for smoother signals
+extern int     M5_MA_Period         = 10;        // M5 SMA period (entry timing)
 extern int     RSI_Period           = 14;        // M5 RSI period
-
-// OPTIMIZATION: Flexible MA Crossover Settings
-extern bool    UseFlexibleCrossover = true;      // Allow near-crossovers (within tolerance)
-extern double  MACrossoverTolerance = 5.0;       // Pips tolerance for "near crossover" detection
-extern bool    UseBarCooldown       = true;      // Check signals once per bar (reduces log spam)
 
 // ATR-Based Stops & Fixed SL/TP (in pips)
 extern bool    UseAdaptiveStops     = true;
@@ -69,39 +64,7 @@ extern double  ATR_VolatilityThreshold= 0.0005;    // Lowered minimum acceptable
 extern bool    UseMACDFilter          = false;   // DISABLED by default - less strict
 extern bool    UseBreakoutFilter      = false;     // Breakout confirmation filter
 extern int     BreakoutBars           = 10;        // Lookback bars for breakout detection
-extern double  MaxSpreadPips          = 2.0;      // Maximum acceptable spread (pips) - STRICT for quality
-
-// NEW HYBRID SYSTEM FILTERS
-extern bool    UseIchimokuFilter      = true;     // Ichimoku Cloud confirmation
-extern bool    UseParabolicSAR        = true;     // Parabolic SAR trend confirmation
-extern bool    UseEnvelopeFilter      = true;     // Envelope channel filter
-extern double  EnvelopePercent        = 0.015;    // 1.5% envelope from MA
-extern bool    UseMultiTimeframe      = true;     // H4 + H1 + M5 confirmation
-extern bool    UseATRSweetSpot        = true;     // Only trade in optimal volatility range
-extern double  ATRMinThreshold        = 0.0003;   // Minimum ATR (avoid choppy markets)
-extern double  ATRMaxThreshold        = 0.0020;   // Maximum ATR (avoid wild swings)
-
-// SMART PYRAMID BUILDING (Safer than Martingale)
-extern bool    UsePyramidBuilding     = true;     // Add to winning positions
-extern int     PyramidTriggerPips     = 30;       // Add position every X pips in profit
-extern int     PyramidMaxLevels       = 3;        // Maximum pyramid levels (1 = initial + 2 additions)
-extern double  PyramidSizeMultiplier  = 1.0;      // Size of each addition (1.0 = same as initial)
-
-// HYBRID INTELLIGENCE SYSTEM - 85-90% WIN RATE
-extern bool    UseHybridIntelligence  = true;     // Enable adaptive quality mode
-extern bool    StrictMode             = false;    // TRUE = 90% mode (fewer trades), FALSE = 85% mode (balanced)
-extern bool    UseDailyTrendFilter    = true;     // Only trade WITH daily trend
-extern bool    UseKeyLevelFilter      = true;     // Only trade at support/resistance
-extern bool    UseFibonacciLevels     = true;     // Detect Fibonacci retracement levels
-extern bool    UseCandlePatterns      = true;     // Require strong candle confirmation
-extern bool    UseRetestConfirmation  = true;     // Wait for pullback + retest before entry
-extern bool    UseSessionFilter       = true;     // Only trade London/NY sessions
-extern bool    UseVolumeSpike         = true;     // Require volume confirmation
-extern bool    UseMarketBias          = true;     // Check last 3 H1 candles for bias
-extern int     ADXTrendThreshold      = 30;       // ADX must be > 30 for strong trend (was 20)
-extern double  KeyLevelProximity      = 15.0;     // Max pips from key level to enter
-extern double  FibLevelProximity      = 10.0;     // Max pips from Fib level to enter
-extern double  VolumeMultiplier       = 1.5;      // Tick volume must be 1.5x average
+extern double  MaxSpreadPips          = 10.0;      // Increased maximum acceptable spread (pips)
 
 // Daily Drawdown Limit
 extern double  DailyDrawdownLimitPct  = 10.0;      // Increased to 10% - less restrictive
@@ -125,15 +88,12 @@ datetime gSafeModeStartTime = 0;         // Track when safe mode was activated
 enum EA_STATE { EA_STATE_READY = 0, EA_STATE_SAFE_MODE, EA_STATE_SUSPENDED };
 EA_STATE gEAState = EA_STATE_READY;
 
-// Trade tracking structure for notifications and partial close management + PYRAMID
+// Trade tracking structure for notifications and partial close management
 struct TRADE_TRACKER
 {
    int ticket;
    bool partialLevel0Done;
    bool partialLevel1Done;
-   int pyramidLevel;              // Current pyramid level (0 = initial entry)
-   double lastPyramidPrice;       // Price of last pyramid addition
-   int pyramidTickets[10];        // Array to store pyramid position tickets
 };
 TRADE_TRACKER trackedTrades[];
 
@@ -149,59 +109,9 @@ CORRELATION_CACHE correlationCache[];
 int gCorrelationCacheExpiry = 300;  // Cache expires after 5 minutes
 
 //--------------------------------------------------------------------
-// STATISTICS TRACKING - Win/Loss, Total Trades, Equity
-//--------------------------------------------------------------------
-int g_DailyTotalTrades = 0;
-int g_DailyWins = 0;
-int g_DailyLosses = 0;
-int g_TotalWins = 0;
-int g_TotalLosses = 0;
-int g_TotalTrades = 0;
-double g_StartEquity = 0;
-double g_PeakEquity = 0;
-datetime g_LastStatsReset = 0;
-datetime g_LastStatusPrint = 0;  // For periodic status updates
-
-// OPTIMIZATION: Cooldown & State Tracking Variables
-datetime g_LastSignalCheckTime[];  // Track last bar check per symbol
-int g_LastSignalState[];           // Track signal state: 0=none, 1=buy, 2=sell, -1=rejected
-
-//--------------------------------------------------------------------
 // Forward Declarations
 //--------------------------------------------------------------------
 int RobustOrderSend(string sym, int cmd, double volume, double price, int slippage, double sl, double tp, string comment);
-
-//--------------------------------------------------------------------
-// OPTIMIZATION: Smart Logging - Only log when state changes
-//--------------------------------------------------------------------
-int GetSymbolIndex(string sym)
-{
-   for(int i = 0; i < PairCount; i++)
-   {
-      if(CurrencyPairs[i] == sym)
-         return i;
-   }
-   return -1;
-}
-
-void SmartPrint(string sym, string message, int newState)
-{
-   // newState: 0=none, 1=buy signal, 2=sell signal, -1=rejected, 3=buy passed, 4=sell passed
-   int idx = GetSymbolIndex(sym);
-   if(idx < 0)
-   {
-      Print(message);  // Symbol not in array, always print
-      return;
-   }
-
-   // Only print if state changed
-   if(g_LastSignalState[idx] != newState)
-   {
-      Print(message);
-      g_LastSignalState[idx] = newState;
-   }
-   // Else: state hasn't changed, suppress duplicate log
-}
 
 // Helper function to split pairs string
 int SplitPairs(string str, string separator, string &result[])
@@ -306,10 +216,6 @@ void TrackNewTrade(int ticket)
    tt.ticket = ticket;
    tt.partialLevel0Done = false;
    tt.partialLevel1Done = false;
-   tt.pyramidLevel = 0;
-   tt.lastPyramidPrice = 0;
-   ArrayInitialize(tt.pyramidTickets, 0);
-   tt.pyramidTickets[0] = ticket; // First entry
    int sz = ArraySize(trackedTrades);
    ArrayResize(trackedTrades, sz + 1);
    trackedTrades[sz] = tt;
@@ -574,492 +480,19 @@ bool RobustOrderModify(int ticket, double openPrice, double stoploss, double tak
 // SECTION 5: ADVANCED STRATEGY MODULES
 //--------------------------------------------------------------------
 
-// 5.0 HYBRID INTELLIGENCE FILTERS - 85-90% WIN RATE SYSTEM
-
-// Daily Trend Filter - NEVER fight the daily trend
-bool CheckDailyTrend(string sym, bool isBuy)
-{
-   if(!UseDailyTrendFilter && !UseHybridIntelligence) return true;
-
-   double dailyClose = iClose(sym, PERIOD_D1, 0);
-   double daily200MA = iMA(sym, PERIOD_D1, 200, 0, MODE_SMA, PRICE_CLOSE, 0);
-   double daily50MA = iMA(sym, PERIOD_D1, 50, 0, MODE_SMA, PRICE_CLOSE, 0);
-
-   if(isBuy)
-   {
-      // For BUY: Daily price must be above 200 MA AND 50 MA above 200 MA
-      bool dailyBullish = (dailyClose > daily200MA);
-      bool maCrossUp = (daily50MA > daily200MA);
-
-      if(dailyBullish && maCrossUp)
-      {
-         Print("[", sym, "] ✓ Daily Trend BUY: Price above 200MA, bullish alignment");
-         return true;
-      }
-      Print("[", sym, "] ✗ Daily Trend BUY rejected: Fighting daily trend");
-      return false;
-   }
-   else
-   {
-      // For SELL: Daily price must be below 200 MA AND 50 MA below 200 MA
-      bool dailyBearish = (dailyClose < daily200MA);
-      bool maCrossDown = (daily50MA < daily200MA);
-
-      if(dailyBearish && maCrossDown)
-      {
-         Print("[", sym, "] ✓ Daily Trend SELL: Price below 200MA, bearish alignment");
-         return true;
-      }
-      Print("[", sym, "] ✗ Daily Trend SELL rejected: Fighting daily trend");
-      return false;
-   }
-}
-
-// Key Level Detection - Support/Resistance/Pivots
-bool CheckKeyLevel(string sym, double price, bool isBuy)
-{
-   if(!UseKeyLevelFilter && !UseHybridIntelligence) return true;
-
-   double pip = MarketInfo(sym, MODE_POINT) * 10;
-   double proximity = KeyLevelProximity * pip;
-
-   // Check Daily Highs/Lows (last 5 days)
-   for(int i = 1; i <= 5; i++)
-   {
-      double dailyHigh = iHigh(sym, PERIOD_D1, i);
-      double dailyLow = iLow(sym, PERIOD_D1, i);
-
-      if(isBuy && MathAbs(price - dailyLow) <= proximity)
-      {
-         Print("[", sym, "] ✓ Key Level BUY: At Daily Low support (", dailyLow, ")");
-         return true;
-      }
-      if(!isBuy && MathAbs(price - dailyHigh) <= proximity)
-      {
-         Print("[", sym, "] ✓ Key Level SELL: At Daily High resistance (", dailyHigh, ")");
-         return true;
-      }
-   }
-
-   // Check Weekly Pivot Points
-   double weeklyHigh = iHigh(sym, PERIOD_W1, 1);
-   double weeklyLow = iLow(sym, PERIOD_W1, 1);
-   double weeklyClose = iClose(sym, PERIOD_W1, 1);
-   double pivot = (weeklyHigh + weeklyLow + weeklyClose) / 3.0;
-
-   if(MathAbs(price - pivot) <= proximity)
-   {
-      Print("[", sym, "] ✓ Key Level: At Weekly Pivot (", pivot, ")");
-      return true;
-   }
-
-   // Check Round Numbers (psychological levels)
-   double roundLevel = MathRound(price / (100 * pip)) * (100 * pip); // Nearest 100 pips
-   if(MathAbs(price - roundLevel) <= proximity * 0.5)
-   {
-      Print("[", sym, "] ✓ Key Level: At Round Number (", roundLevel, ")");
-      return true;
-   }
-
-   Print("[", sym, "] ✗ Key Level rejected: Not at significant level");
-   return false;
-}
-
-// Fibonacci Retracement Levels
-bool CheckFibonacciLevel(string sym, double price, bool isBuy)
-{
-   if(!UseFibonacciLevels && !UseHybridIntelligence) return true;
-
-   double pip = MarketInfo(sym, MODE_POINT) * 10;
-   double proximity = FibLevelProximity * pip;
-
-   // Calculate Fib levels from recent swing (last 20 H1 candles)
-   double swingHigh = iHigh(sym, PERIOD_H1, iHighest(sym, PERIOD_H1, MODE_HIGH, 20, 0));
-   double swingLow = iLow(sym, PERIOD_H1, iLowest(sym, PERIOD_H1, MODE_LOW, 20, 0));
-   double range = swingHigh - swingLow;
-
-   // Key Fibonacci levels
-   double fib236 = swingHigh - (range * 0.236);
-   double fib382 = swingHigh - (range * 0.382);
-   double fib500 = swingHigh - (range * 0.500);
-   double fib618 = swingHigh - (range * 0.618);
-   double fib786 = swingHigh - (range * 0.786);
-
-   // Check if price is near any Fib level
-   if(MathAbs(price - fib382) <= proximity ||
-      MathAbs(price - fib500) <= proximity ||
-      MathAbs(price - fib618) <= proximity)
-   {
-      Print("[", sym, "] ✓ Fibonacci Level: Price at key retracement");
-      return true;
-   }
-
-   if(StrictMode)
-   {
-      Print("[", sym, "] ✗ Fibonacci rejected: Not at key Fib level");
-      return false;
-   }
-
-   return true; // In 85% mode, Fib is optional bonus
-}
-
-// Candle Pattern Recognition
-bool CheckCandlePattern(string sym, bool isBuy)
-{
-   if(!UseCandlePatterns && !UseHybridIntelligence) return true;
-
-   double open1 = iOpen(sym, PERIOD_M5, 1);
-   double high1 = iHigh(sym, PERIOD_M5, 1);
-   double low1 = iLow(sym, PERIOD_M5, 1);
-   double close1 = iClose(sym, PERIOD_M5, 1);
-
-   double open2 = iOpen(sym, PERIOD_M5, 2);
-   double close2 = iClose(sym, PERIOD_M5, 2);
-
-   double body1 = MathAbs(close1 - open1);
-   double range1 = high1 - low1;
-   double upperShadow = high1 - MathMax(open1, close1);
-   double lowerShadow = MathMin(open1, close1) - low1;
-
-   if(isBuy)
-   {
-      // Bullish Engulfing
-      if(close2 < open2 && close1 > open1 && close1 > open2 && open1 < close2)
-      {
-         Print("[", sym, "] ✓ Candle Pattern BUY: Bullish Engulfing");
-         return true;
-      }
-
-      // Hammer / Pin Bar
-      if(lowerShadow > body1 * 2 && upperShadow < body1 * 0.3 && close1 > open1)
-      {
-         Print("[", sym, "] ✓ Candle Pattern BUY: Hammer/Pin Bar");
-         return true;
-      }
-
-      // Strong bullish candle
-      if(body1 > range1 * 0.7 && close1 > open1)
-      {
-         Print("[", sym, "] ✓ Candle Pattern BUY: Strong bullish candle");
-         return true;
-      }
-   }
-   else
-   {
-      // Bearish Engulfing
-      if(close2 > open2 && close1 < open1 && close1 < open2 && open1 > close2)
-      {
-         Print("[", sym, "] ✓ Candle Pattern SELL: Bearish Engulfing");
-         return true;
-      }
-
-      // Shooting Star
-      if(upperShadow > body1 * 2 && lowerShadow < body1 * 0.3 && close1 < open1)
-      {
-         Print("[", sym, "] ✓ Candle Pattern SELL: Shooting Star");
-         return true;
-      }
-
-      // Strong bearish candle
-      if(body1 > range1 * 0.7 && close1 < open1)
-      {
-         Print("[", sym, "] ✓ Candle Pattern SELL: Strong bearish candle");
-         return true;
-      }
-   }
-
-   Print("[", sym, "] ✗ Candle Pattern rejected: No clear pattern");
-   return false;
-}
-
-// Session Time Filter - London/NY overlap = best time
-bool CheckTradingSession()
-{
-   if(!UseSessionFilter && !UseHybridIntelligence) return true;
-
-   int hour = TimeHour(TimeCurrent());
-
-   // London Session: 08:00-11:00 GMT
-   bool londonOpen = (hour >= 8 && hour < 11);
-
-   // London/NY Overlap: 13:00-16:00 GMT (BEST)
-   bool nyOverlap = (hour >= 13 && hour < 16);
-
-   // NY Close: 19:00-21:00 GMT
-   bool nyClose = (hour >= 19 && hour < 21);
-
-   // Avoid Friday afternoon (profit-taking)
-   bool isFriday = (TimeDayOfWeek(TimeCurrent()) == 5);
-   bool fridayAfternoon = (isFriday && hour >= 15);
-
-   if(fridayAfternoon)
-   {
-      Print("Session Filter: SKIP - Friday afternoon (unpredictable)");
-      return false;
-   }
-
-   if(londonOpen || nyOverlap || nyClose)
-   {
-      Print("Session Filter: ✓ Active session (London/NY)");
-      return true;
-   }
-
-   Print("Session Filter: ✗ Outside prime trading hours");
-   return false;
-}
-
-// Volume Spike Detection (using tick volume)
-bool CheckVolumeSpike(string sym)
-{
-   if(!UseVolumeSpike && !UseHybridIntelligence) return true;
-
-   long currentVolume = iVolume(sym, PERIOD_M5, 0);
-   long avgVolume = 0;
-
-   // Calculate average volume from last 20 bars
-   for(int i = 1; i <= 20; i++)
-   {
-      avgVolume += iVolume(sym, PERIOD_M5, i);
-   }
-   avgVolume = avgVolume / 20;
-
-   if(currentVolume >= avgVolume * VolumeMultiplier)
-   {
-      Print("[", sym, "] ✓ Volume Spike: ", currentVolume, " (", VolumeMultiplier, "x average)");
-      return true;
-   }
-
-   Print("[", sym, "] ✗ Volume too low: ", currentVolume, " vs avg ", avgVolume);
-   return false;
-}
-
-// Market Bias - Check last 3 H1 candles for clear direction
-bool CheckMarketBias(string sym, bool isBuy)
-{
-   if(!UseMarketBias && !UseHybridIntelligence) return true;
-
-   int bullishCount = 0;
-   int bearishCount = 0;
-
-   for(int i = 1; i <= 3; i++)
-   {
-      double open = iOpen(sym, PERIOD_H1, i);
-      double close = iClose(sym, PERIOD_H1, i);
-
-      if(close > open) bullishCount++;
-      if(close < open) bearishCount++;
-   }
-
-   if(isBuy)
-   {
-      if(bullishCount >= 2)
-      {
-         Print("[", sym, "] ✓ Market Bias BUY: ", bullishCount, "/3 H1 candles bullish");
-         return true;
-      }
-      Print("[", sym, "] ✗ Market Bias BUY rejected: No clear bullish bias");
-      return false;
-   }
-   else
-   {
-      if(bearishCount >= 2)
-      {
-         Print("[", sym, "] ✓ Market Bias SELL: ", bearishCount, "/3 H1 candles bearish");
-         return true;
-      }
-      Print("[", sym, "] ✗ Market Bias SELL rejected: No clear bearish bias");
-      return false;
-   }
-}
-
-// 5.0 NEW HYBRID FILTERS (from before)
-
-// Ichimoku Cloud Filter - Price must be on correct side of cloud
-bool CheckIchimokuCloud(string sym, bool isBuy)
-{
-   if(!UseIchimokuFilter) return true;
-
-   // Ichimoku parameters: Tenkan=9, Kijun=26, Senkou=52
-   double tenkan = iIchimoku(sym, PERIOD_H1, 9, 26, 52, MODE_TENKANSEN, 0);
-   double kijun = iIchimoku(sym, PERIOD_H1, 9, 26, 52, MODE_KIJUNSEN, 0);
-   double spanA = iIchimoku(sym, PERIOD_H1, 9, 26, 52, MODE_SENKOUSPANA, 0);
-   double spanB = iIchimoku(sym, PERIOD_H1, 9, 26, 52, MODE_SENKOUSPANB, 0);
-   double price = iClose(sym, PERIOD_H1, 0);
-
-   double cloudTop = MathMax(spanA, spanB);
-   double cloudBottom = MathMin(spanA, spanB);
-
-   if(isBuy)
-   {
-      // For BUY: Price must be above cloud AND Tenkan above Kijun
-      bool aboveCloud = (price > cloudTop);
-      bool bullishCross = (tenkan > kijun);
-      if(aboveCloud && bullishCross)
-      {
-         Print("[", sym, "] Ichimoku BUY OK: Price=", price, " > Cloud=", cloudTop);
-         return true;
-      }
-      Print("[", sym, "] Ichimoku BUY rejected");
-      return false;
-   }
-   else
-   {
-      // For SELL: Price must be below cloud AND Tenkan below Kijun
-      bool belowCloud = (price < cloudBottom);
-      bool bearishCross = (tenkan < kijun);
-      if(belowCloud && bearishCross)
-      {
-         Print("[", sym, "] Ichimoku SELL OK: Price=", price, " < Cloud=", cloudBottom);
-         return true;
-      }
-      Print("[", sym, "] Ichimoku SELL rejected");
-      return false;
-   }
-}
-
-// Parabolic SAR Filter - Must confirm trend direction
-bool CheckParabolicSAR(string sym, bool isBuy)
-{
-   if(!UseParabolicSAR) return true;
-
-   double sar = iSAR(sym, PERIOD_H1, 0.02, 0.2, 0);
-   double price = iClose(sym, PERIOD_H1, 0);
-
-   if(isBuy)
-   {
-      // For BUY: SAR must be below price (uptrend)
-      if(sar < price)
-      {
-         Print("[", sym, "] SAR BUY OK: SAR=", sar, " < Price=", price);
-         return true;
-      }
-      Print("[", sym, "] SAR BUY rejected: SAR above price");
-      return false;
-   }
-   else
-   {
-      // For SELL: SAR must be above price (downtrend)
-      if(sar > price)
-      {
-         Print("[", sym, "] SAR SELL OK: SAR=", sar, " > Price=", price);
-         return true;
-      }
-      Print("[", sym, "] SAR SELL rejected: SAR below price");
-      return false;
-   }
-}
-
-// Envelope Filter - Price must touch outer envelope band
-bool CheckEnvelopeTouch(string sym, bool isBuy)
-{
-   if(!UseEnvelopeFilter) return true;
-
-   double ma = iMA(sym, PERIOD_M5, 20, 0, MODE_SMA, PRICE_CLOSE, 0);
-   double upperEnv = ma * (1 + EnvelopePercent);
-   double lowerEnv = ma * (1 - EnvelopePercent);
-   double price = iClose(sym, PERIOD_M5, 0);
-
-   if(isBuy)
-   {
-      // For BUY: Price should be near/below lower envelope
-      if(price <= lowerEnv * 1.005) // 0.5% tolerance
-      {
-         Print("[", sym, "] Envelope BUY OK: Price=", price, " <= Lower=", lowerEnv);
-         return true;
-      }
-      return false;
-   }
-   else
-   {
-      // For SELL: Price should be near/above upper envelope
-      if(price >= upperEnv * 0.995) // 0.5% tolerance
-      {
-         Print("[", sym, "] Envelope SELL OK: Price=", price, " >= Upper=", upperEnv);
-         return true;
-      }
-      return false;
-   }
-}
-
-// Multi-Timeframe Trend Alignment (H4 + H1 must agree)
-bool CheckMultiTimeframeTrend(string sym, bool isBuy)
-{
-   if(!UseMultiTimeframe) return true;
-
-   // H4 - Long-term trend (200 SMA)
-   double h4Price = iClose(sym, PERIOD_H4, 0);
-   double h4MA = iMA(sym, PERIOD_H4, 200, 0, MODE_SMA, PRICE_CLOSE, 0);
-
-   // H1 - Medium-term trend (50 SMA)
-   double h1Price = iClose(sym, PERIOD_H1, 0);
-   double h1MA = iMA(sym, PERIOD_H1, 50, 0, MODE_SMA, PRICE_CLOSE, 0);
-
-   if(isBuy)
-   {
-      bool h4Bullish = (h4Price > h4MA);
-      bool h1Bullish = (h1Price > h1MA);
-
-      if(h4Bullish && h1Bullish)
-      {
-         Print("[", sym, "] Multi-TF BUY OK: H4 & H1 aligned bullish");
-         return true;
-      }
-      Print("[", sym, "] Multi-TF BUY rejected: Timeframes not aligned");
-      return false;
-   }
-   else
-   {
-      bool h4Bearish = (h4Price < h4MA);
-      bool h1Bearish = (h1Price < h1MA);
-
-      if(h4Bearish && h1Bearish)
-      {
-         Print("[", sym, "] Multi-TF SELL OK: H4 & H1 aligned bearish");
-         return true;
-      }
-      Print("[", sym, "] Multi-TF SELL rejected: Timeframes not aligned");
-      return false;
-   }
-}
-
-// ATR Sweet Spot - Optimal volatility range
-bool CheckATRSweetSpot(string sym)
-{
-   if(!UseATRSweetSpot) return true;
-
-   double atr = iATR(sym, PERIOD_M5, 14, 0);
-
-   if(atr >= ATRMinThreshold && atr <= ATRMaxThreshold)
-   {
-      Print("[", sym, "] ATR Sweet Spot OK: ", atr, " (", ATRMinThreshold, "-", ATRMaxThreshold, ")");
-      return true;
-   }
-
-   if(atr < ATRMinThreshold)
-      Print("[", sym, "] ATR too low (choppy): ", atr);
-   else
-      Print("[", sym, "] ATR too high (wild): ", atr);
-
-   return false;
-}
-
-// 5.1 Market Regime Filtering using ADX on H1 - HYBRID INTELLIGENCE
+// 5.1 Market Regime Filtering using ADX on H1
 int GetMarketRegime(string sym)
 {
    double adx = iADX(sym, PERIOD_H1, 14, PRICE_CLOSE, MODE_MAIN, 0);
+   double atr = iATR(sym, PERIOD_H1, 14, 0);
 
-   // Use adaptive ADX threshold based on mode
-   double adxThreshold = UseHybridIntelligence ? ADXTrendThreshold : 20;
-
+   // Lowered ADX threshold from 25 to 20 for better trend detection
    // If ADX is high, consider it trending
-   if(adx >= adxThreshold)
-   {
-      Print("[", sym, "] TREND MODE: ADX=", DoubleToString(adx, 1), " (threshold: ", adxThreshold, ")");
+   if(adx >= 20)
       return 1;  // Trend
-   }
 
    // Otherwise it's ranging - mean reversion active
-   Print("[", sym, "] RANGE MODE: ADX=", DoubleToString(adx, 1), " (threshold: ", adxThreshold, ")");
+   Print("[", sym, "] RANGE MODE: ADX=", DoubleToString(adx, 1), " (threshold: 20)");
    return 2;      // Range
 }
 
@@ -1084,13 +517,9 @@ bool CheckSupplyDemandZone(string sym, double price)
    return inZone;
 }
 
-// 5.3 Mean Reversion Strategy using Bollinger Bands and RSI on M5 - ENHANCED
+// 5.3 Mean Reversion Strategy using Bollinger Bands and RSI on M5
 bool CheckMeanReversionBuySignal(string sym, double &slDist, double &tpDist)
 {
-   // Check ATR sweet spot and envelope first
-   if(!CheckATRSweetSpot(sym)) return false;
-   if(!CheckEnvelopeTouch(sym, true)) return false;
-
    double lowerBand = iBands(sym, PERIOD_M5, 20, 2, 0, PRICE_CLOSE, MODE_LOWER, 0);
    double middleBand = iBands(sym, PERIOD_M5, 20, 2, 0, PRICE_CLOSE, MODE_MAIN, 0);
    double price = iClose(sym, PERIOD_M5, 0);
@@ -1122,10 +551,6 @@ bool CheckMeanReversionBuySignal(string sym, double &slDist, double &tpDist)
 
 bool CheckMeanReversionSellSignal(string sym, double &slDist, double &tpDist)
 {
-   // Check ATR sweet spot and envelope first
-   if(!CheckATRSweetSpot(sym)) return false;
-   if(!CheckEnvelopeTouch(sym, false)) return false;
-
    double upperBand = iBands(sym, PERIOD_M5, 20, 2, 0, PRICE_CLOSE, MODE_UPPER, 0);
    double middleBand = iBands(sym, PERIOD_M5, 20, 2, 0, PRICE_CLOSE, MODE_MAIN, 0);
    double price = iClose(sym, PERIOD_M5, 0);
@@ -1233,38 +658,9 @@ bool CheckMACDSell(string sym)
    return (mc < mp && mc < 0);
 }
 
-// 5.7 Trend-Following Buy Signal (for trending markets) - HYBRID INTELLIGENCE SYSTEM
+// 5.7 Trend-Following Buy Signal (for trending markets)
 bool CheckBuySignal(string sym, double &slDist, double &tpDist)
 {
-   double currentPrice = iClose(sym, PERIOD_M5, 0);
-
-   // ═══════════════════════════════════════════════════════════
-   // HYBRID INTELLIGENCE - 85-90% WIN RATE FILTER STACK
-   // ═══════════════════════════════════════════════════════════
-
-   // LAYER 1: MACRO TREND (Daily) - NEVER fight the daily
-   if(!CheckDailyTrend(sym, true)) return false;
-
-   // LAYER 2: SESSION TIMING - Only trade prime hours
-   if(!CheckTradingSession()) return false;
-
-   // LAYER 3: STRUCTURE (Multi-Timeframe)
-   if(!CheckMultiTimeframeTrend(sym, true)) return false;   // H4 + H1 alignment
-   if(!CheckIchimokuCloud(sym, true)) return false;         // Ichimoku cloud
-   if(!CheckParabolicSAR(sym, true)) return false;          // SAR trend
-   if(!CheckATRSweetSpot(sym)) return false;                // Volatility sweet spot
-
-   // LAYER 4: KEY LEVELS - Price at significant zone
-   if(!CheckKeyLevel(sym, currentPrice, true)) return false;
-   if(!CheckFibonacciLevel(sym, currentPrice, true)) return false;
-
-   // LAYER 5: MARKET SENTIMENT
-   if(!CheckMarketBias(sym, true)) return false;            // Last 3 H1 candles bullish
-
-   // LAYER 6: ENTRY QUALITY
-   if(!CheckCandlePattern(sym, true)) return false;         // Strong candle pattern
-   if(!CheckVolumeSpike(sym)) return false;                 // Volume confirmation
-
    // H1 trend filter: price must be above H1 MA
    double h1c = iClose(sym, PERIOD_H1, 0);
    double h1ma = iMA(sym, PERIOD_H1, H1_MA_Period, 0, MODE_SMA, PRICE_CLOSE, 0);
@@ -1274,38 +670,15 @@ bool CheckBuySignal(string sym, double &slDist, double &tpDist)
       return false;
    }
 
-   // M5 MA crossover: previous close below MA, current close above MA (with flexible tolerance)
+   // M5 MA crossover: previous close below MA, current close above MA
    double cM5 = iClose(sym, PERIOD_M5, 0);
    double pM5 = iClose(sym, PERIOD_M5, 1);
    double maC = iMA(sym, PERIOD_M5, M5_MA_Period, 0, MODE_SMA, PRICE_CLOSE, 0);
    double maP = iMA(sym, PERIOD_M5, M5_MA_Period, 0, MODE_SMA, PRICE_CLOSE, 1);
-
-   bool strictCrossover = (pM5 < maP && cM5 > maC);  // Classic crossover
-   bool flexibleCrossover = false;
-
-   if(UseFlexibleCrossover && !strictCrossover)
+   if(!(pM5 < maP && cM5 > maC))
    {
-      // Check if price is NEAR crossover (within tolerance)
-      double pip = MarketInfo(sym, MODE_POINT) * 10;
-      double tolerance = MACrossoverTolerance * pip;
-
-      // Allow if: price crossed OR price is very close to MA AND moving toward it
-      bool nearMA = (MathAbs(cM5 - maC) <= tolerance);
-      bool bullishMomentum = (cM5 > pM5);  // Price rising
-      bool aboveMA = (cM5 > maC * 0.9995);  // Price above or very near MA (0.05% tolerance)
-
-      flexibleCrossover = (nearMA && bullishMomentum && aboveMA);
-   }
-
-   if(!strictCrossover && !flexibleCrossover)
-   {
-      SmartPrint(sym, "[" + sym + "] BUY rejected: No M5 MA crossover (strict=" + (string)strictCrossover + ", flexible=" + (string)flexibleCrossover + ")", -1);
+      Print("[", sym, "] BUY rejected: No M5 MA crossover");
       return false;
-   }
-
-   if(flexibleCrossover && !strictCrossover)
-   {
-      Print("[", sym, "] BUY signal: FLEXIBLE crossover detected (price near MA with bullish momentum)");
    }
 
    // RSI confirmation: must be above 50 for buy
@@ -1316,15 +689,18 @@ bool CheckBuySignal(string sym, double &slDist, double &tpDist)
       return false;
    }
 
-   // Spread filter - STRICT
+   // Volatility filter
+   if(UseVolatilityFilter)
+   {
+      double atr = iATR(sym, PERIOD_M5, 14, 0);
+      if(atr < ATR_VolatilityThreshold) return false;
+   }
+
+   // Spread filter
    double spreadPts = MarketInfo(sym, MODE_SPREAD);
    double pip = MarketInfo(sym, MODE_POINT);
    double spreadPips = spreadPts * pip / (pip * 10);  // Convert points to pips
-   if(spreadPips > MaxSpreadPips)
-   {
-      Print("[", sym, "] BUY rejected: Spread too high = ", spreadPips, " pips");
-      return false;
-   }
+   if(spreadPips > MaxSpreadPips) return false;
 
    // MACD filter
    if(UseMACDFilter && !CheckMACDBuy(sym)) return false;
@@ -1344,45 +720,12 @@ bool CheckBuySignal(string sym, double &slDist, double &tpDist)
       slDist = BaseStopLossPips;
       tpDist = BaseTakeProfitPips;
    }
-
-   Print("═══════════════════════════════════════════════════════════");
-   Print("[", sym, "] ✓✓✓ ALL BUY FILTERS PASSED - HYBRID INTELLIGENCE ✓✓✓");
-   Print("═══════════════════════════════════════════════════════════");
    return true;
 }
 
-// 5.8 Trend-Following Sell Signal (for trending markets) - HYBRID INTELLIGENCE SYSTEM
+// 5.8 Trend-Following Sell Signal (for trending markets)
 bool CheckSellSignal(string sym, double &slDist, double &tpDist)
 {
-   double currentPrice = iClose(sym, PERIOD_M5, 0);
-
-   // ═══════════════════════════════════════════════════════════
-   // HYBRID INTELLIGENCE - 85-90% WIN RATE FILTER STACK
-   // ═══════════════════════════════════════════════════════════
-
-   // LAYER 1: MACRO TREND (Daily) - NEVER fight the daily
-   if(!CheckDailyTrend(sym, false)) return false;
-
-   // LAYER 2: SESSION TIMING - Only trade prime hours
-   if(!CheckTradingSession()) return false;
-
-   // LAYER 3: STRUCTURE (Multi-Timeframe)
-   if(!CheckMultiTimeframeTrend(sym, false)) return false;  // H4 + H1 alignment
-   if(!CheckIchimokuCloud(sym, false)) return false;        // Ichimoku cloud
-   if(!CheckParabolicSAR(sym, false)) return false;         // SAR trend
-   if(!CheckATRSweetSpot(sym)) return false;                // Volatility sweet spot
-
-   // LAYER 4: KEY LEVELS - Price at significant zone
-   if(!CheckKeyLevel(sym, currentPrice, false)) return false;
-   if(!CheckFibonacciLevel(sym, currentPrice, false)) return false;
-
-   // LAYER 5: MARKET SENTIMENT
-   if(!CheckMarketBias(sym, false)) return false;           // Last 3 H1 candles bearish
-
-   // LAYER 6: ENTRY QUALITY
-   if(!CheckCandlePattern(sym, false)) return false;        // Strong candle pattern
-   if(!CheckVolumeSpike(sym)) return false;                 // Volume confirmation
-
    // H1 trend filter: price must be below H1 MA
    double h1c = iClose(sym, PERIOD_H1, 0);
    double h1ma = iMA(sym, PERIOD_H1, H1_MA_Period, 0, MODE_SMA, PRICE_CLOSE, 0);
@@ -1392,38 +735,15 @@ bool CheckSellSignal(string sym, double &slDist, double &tpDist)
       return false;
    }
 
-   // M5 MA crossover: previous close above MA, current close below MA (with flexible tolerance)
+   // M5 MA crossover: previous close above MA, current close below MA
    double cM5 = iClose(sym, PERIOD_M5, 0);
    double pM5 = iClose(sym, PERIOD_M5, 1);
    double maC = iMA(sym, PERIOD_M5, M5_MA_Period, 0, MODE_SMA, PRICE_CLOSE, 0);
    double maP = iMA(sym, PERIOD_M5, M5_MA_Period, 0, MODE_SMA, PRICE_CLOSE, 1);
-
-   bool strictCrossover = (pM5 > maP && cM5 < maC);  // Classic crossover
-   bool flexibleCrossover = false;
-
-   if(UseFlexibleCrossover && !strictCrossover)
+   if(!(pM5 > maP && cM5 < maC))
    {
-      // Check if price is NEAR crossover (within tolerance)
-      double pip = MarketInfo(sym, MODE_POINT) * 10;
-      double tolerance = MACrossoverTolerance * pip;
-
-      // Allow if: price crossed OR price is very close to MA AND moving toward it
-      bool nearMA = (MathAbs(cM5 - maC) <= tolerance);
-      bool bearishMomentum = (cM5 < pM5);  // Price falling
-      bool belowMA = (cM5 < maC * 1.0005);  // Price below or very near MA (0.05% tolerance)
-
-      flexibleCrossover = (nearMA && bearishMomentum && belowMA);
-   }
-
-   if(!strictCrossover && !flexibleCrossover)
-   {
-      SmartPrint(sym, "[" + sym + "] SELL rejected: No M5 MA crossover (strict=" + (string)strictCrossover + ", flexible=" + (string)flexibleCrossover + ")", -1);
+      Print("[", sym, "] SELL rejected: No M5 MA crossover");
       return false;
-   }
-
-   if(flexibleCrossover && !strictCrossover)
-   {
-      Print("[", sym, "] SELL signal: FLEXIBLE crossover detected (price near MA with bearish momentum)");
    }
 
    // RSI confirmation: must be below 50 for sell
@@ -1434,15 +754,18 @@ bool CheckSellSignal(string sym, double &slDist, double &tpDist)
       return false;
    }
 
-   // Spread filter - STRICT
+   // Volatility filter
+   if(UseVolatilityFilter)
+   {
+      double atr = iATR(sym, PERIOD_M5, 14, 0);
+      if(atr < ATR_VolatilityThreshold) return false;
+   }
+
+   // Spread filter
    double spreadPts = MarketInfo(sym, MODE_SPREAD);
    double pip = MarketInfo(sym, MODE_POINT);
    double spreadPips = spreadPts * pip / (pip * 10);  // Convert points to pips
-   if(spreadPips > MaxSpreadPips)
-   {
-      Print("[", sym, "] SELL rejected: Spread too high = ", spreadPips, " pips");
-      return false;
-   }
+   if(spreadPips > MaxSpreadPips) return false;
 
    // MACD filter
    if(UseMACDFilter && !CheckMACDSell(sym)) return false;
@@ -1462,10 +785,6 @@ bool CheckSellSignal(string sym, double &slDist, double &tpDist)
       slDist = BaseStopLossPips;
       tpDist = BaseTakeProfitPips;
    }
-
-   Print("═══════════════════════════════════════════════════════════");
-   Print("[", sym, "] ✓✓✓ ALL SELL FILTERS PASSED - HYBRID INTELLIGENCE ✓✓✓");
-   Print("═══════════════════════════════════════════════════════════");
    return true;
 }
 
@@ -1571,118 +890,6 @@ bool IsMajorNewsTimeForSymbol(string sym)
    gNewsFilterActive = ParseNewsForSymbol(json, sym);
    gLastNewsCheckTime = TimeCurrent();
    return gNewsFilterActive;
-}
-
-//--------------------------------------------------------------------
-// SECTION 7.5: UPDATE STATISTICS FROM CLOSED TRADES
-//--------------------------------------------------------------------
-void UpdateTradeStatistics()
-{
-   // Update peak equity
-   double currentEquity = AccountEquity();
-   if(currentEquity > g_PeakEquity)
-      g_PeakEquity = currentEquity;
-
-   // Check for closed trades and update stats
-   for(int i = OrdersHistoryTotal() - 1; i >= 0; i--)
-   {
-      if(!OrderSelect(i, SELECT_BY_POS, MODE_HISTORY))
-         continue;
-      if(OrderMagicNumber() != MagicNumber)
-         continue;
-
-      // Only process if closed within last minute (to avoid reprocessing)
-      if(TimeCurrent() - OrderCloseTime() > 60)
-         continue;
-
-      double profit = OrderProfit() + OrderSwap() + OrderCommission();
-
-      // Update daily stats
-      g_DailyTotalTrades++;
-      if(profit > 0)
-         g_DailyWins++;
-      else if(profit < 0)
-         g_DailyLosses++;
-
-      // Update total stats
-      g_TotalTrades++;
-      if(profit > 0)
-         g_TotalWins++;
-      else if(profit < 0)
-         g_TotalLosses++;
-
-      // Print trade result
-      string result = (profit > 0) ? "WIN" : (profit < 0) ? "LOSS" : "BREAKEVEN";
-      Print("═══════════════════════════════════════════════════════════");
-      Print("[TRADE CLOSED] ", OrderSymbol(), " ", OrderType() == OP_BUY ? "BUY" : "SELL");
-      Print("Result: ", result, " | Profit: $", DoubleToString(profit, 2));
-      Print("Daily Stats: ", g_DailyWins, "W / ", g_DailyLosses, "L (", g_DailyTotalTrades, " total)");
-      Print("Overall Stats: ", g_TotalWins, "W / ", g_TotalLosses, "L (", g_TotalTrades, " total)");
-      double winRate = (g_TotalTrades > 0) ? (g_TotalWins / (double)g_TotalTrades * 100.0) : 0;
-      Print("Win Rate: ", DoubleToString(winRate, 1), "%");
-      Print("Equity: $", DoubleToString(currentEquity, 2), " | Peak: $", DoubleToString(g_PeakEquity, 2));
-      Print("═══════════════════════════════════════════════════════════");
-   }
-
-   // Reset daily stats at start of new day
-   datetime currentTime = TimeCurrent();
-   if(TimeDay(currentTime) != TimeDay(g_LastStatsReset))
-   {
-      Print("════════════════════════════════════════════════");
-      Print("NEW DAY - Resetting daily statistics");
-      Print("Yesterday: ", g_DailyWins, "W / ", g_DailyLosses, "L (", g_DailyTotalTrades, " trades)");
-      Print("════════════════════════════════════════════════");
-
-      g_DailyTotalTrades = 0;
-      g_DailyWins = 0;
-      g_DailyLosses = 0;
-      g_LastStatsReset = currentTime;
-   }
-}
-
-//--------------------------------------------------------------------
-// SECTION 7.6: PERIODIC STATUS UPDATE (Every 30 minutes)
-//--------------------------------------------------------------------
-void PrintPeriodicStatus()
-{
-   datetime currentTime = TimeCurrent();
-
-   // Print status every 30 minutes (1800 seconds)
-   if(currentTime - g_LastStatusPrint < 1800)
-      return;
-
-   g_LastStatusPrint = currentTime;
-
-   Print("╔════════════════════════════════════════════════════════════╗");
-   Print("║         ULTRABOT EA - STATUS UPDATE                       ║");
-   Print("╠════════════════════════════════════════════════════════════╣");
-   Print("║ Time: ", TimeToString(currentTime, TIME_DATE|TIME_MINUTES));
-   Print("║ Status: ", gEAState == EA_STATE_READY ? "READY ✓" : (gEAState == EA_STATE_SAFE_MODE ? "SAFE MODE" : "SUSPENDED"));
-   Print("║ ");
-   Print("║ ACCOUNT:");
-   Print("║   Equity: $", DoubleToString(AccountEquity(), 2));
-   Print("║   Start Equity: $", DoubleToString(g_StartEquity, 2));
-   Print("║   Peak Equity: $", DoubleToString(g_PeakEquity, 2));
-   double totalGain = AccountEquity() - g_StartEquity;
-   double totalGainPct = (g_StartEquity > 0) ? (totalGain / g_StartEquity * 100.0) : 0;
-   Print("║   Total Gain: ", (totalGain >= 0 ? "+" : ""), DoubleToString(totalGain, 2), " (", DoubleToString(totalGainPct, 2), "%)");
-   Print("║ ");
-   Print("║ TRADES:");
-   Print("║   Today: ", g_DailyTotalTrades, " trades (", g_DailyWins, "W / ", g_DailyLosses, "L)");
-   double dailyWR = (g_DailyTotalTrades > 0) ? (g_DailyWins / (double)g_DailyTotalTrades * 100.0) : 0;
-   Print("║   Daily Win Rate: ", DoubleToString(dailyWR, 1), "%");
-   Print("║   Overall: ", g_TotalTrades, " trades (", g_TotalWins, "W / ", g_TotalLosses, "L)");
-   double totalWR = (g_TotalTrades > 0) ? (g_TotalWins / (double)g_TotalTrades * 100.0) : 0;
-   Print("║   Overall Win Rate: ", DoubleToString(totalWR, 1), "%");
-   Print("║   Open Positions: ", OrdersTotal());
-   Print("║ ");
-   Print("║ MONITORING:");
-   Print("║   Pairs: ", PairCount, " currency pairs");
-   Print("║   Hybrid Intelligence: ", UseHybridIntelligence ? "ENABLED ✓" : "DISABLED");
-   Print("║   Strict Mode: ", StrictMode ? "90% (1-3 trades/week)" : "85% (3-5 trades/week)");
-   Print("║   Filters Active: Daily Trend, Session, Multi-TF, Ichimoku,");
-   Print("║                   SAR, Key Levels, Fib, Candles, Volume");
-   Print("╚════════════════════════════════════════════════════════════╝");
 }
 
 //--------------------------------------------------------------------
@@ -1832,73 +1039,6 @@ void ManageOpenTrades()
             }
          }
       }
-
-      // SMART PYRAMID BUILDING - Add to winning positions
-      if(UsePyramidBuilding)
-      {
-         int tIdx = GetTradeTrackerIndex(OrderTicket());
-         if(tIdx >= 0 && trackedTrades[tIdx].pyramidLevel < PyramidMaxLevels)
-         {
-            double entryPrice = OrderOpenPrice();
-            double pyramidTrigger = PyramidTriggerPips * pip;
-
-            // Check if we should add a pyramid level
-            bool shouldPyramid = false;
-            if(OrderType() == OP_BUY)
-            {
-               double priceMoved = bid - entryPrice;
-               if(priceMoved >= (trackedTrades[tIdx].pyramidLevel + 1) * pyramidTrigger)
-                  shouldPyramid = true;
-            }
-            else // SELL
-            {
-               double priceMoved = entryPrice - ask;
-               if(priceMoved >= (trackedTrades[tIdx].pyramidLevel + 1) * pyramidTrigger)
-                  shouldPyramid = true;
-            }
-
-            if(shouldPyramid)
-            {
-               // Calculate lot size for pyramid addition
-               double pyramidLot = NormalizeDouble(OrderLots() * PyramidSizeMultiplier, 2);
-               double minLot = MarketInfo(sym, MODE_MINLOT);
-               if(pyramidLot < minLot) pyramidLot = minLot;
-
-               // Place pyramid order
-               double pyramidSL = OrderStopLoss(); // Use same SL as original trade
-               double pyramidTP = OrderTakeProfit(); // Use same TP as original trade
-
-               int pyramidTicket = -1;
-               if(OrderType() == OP_BUY)
-               {
-                  pyramidTicket = RobustOrderSend(sym, OP_BUY, pyramidLot, ask, 3, pyramidSL, pyramidTP,
-                                    "Pyramid+" + IntegerToString(trackedTrades[tIdx].pyramidLevel + 1));
-               }
-               else
-               {
-                  pyramidTicket = RobustOrderSend(sym, OP_SELL, pyramidLot, bid, 3, pyramidSL, pyramidTP,
-                                    "Pyramid+" + IntegerToString(trackedTrades[tIdx].pyramidLevel + 1));
-               }
-
-               if(pyramidTicket >= 0)
-               {
-                  trackedTrades[tIdx].pyramidLevel++;
-                  trackedTrades[tIdx].pyramidTickets[trackedTrades[tIdx].pyramidLevel] = pyramidTicket;
-                  trackedTrades[tIdx].lastPyramidPrice = currentPrice;
-
-                  Print("========================================");
-                  Print("[", sym, "] PYRAMID LEVEL ", trackedTrades[tIdx].pyramidLevel, " ADDED!");
-                  Print("  Base Ticket: ", OrderTicket());
-                  Print("  Pyramid Ticket: ", pyramidTicket);
-                  Print("  Profit: +", DoubleToString(profitPips, 1), " pips");
-                  Print("========================================");
-
-                  Notify("Pyramid+" + IntegerToString(trackedTrades[tIdx].pyramidLevel) + " added to " + sym +
-                         " @ +" + DoubleToString(profitPips, 0) + " pips");
-               }
-            }
-         }
-      }
    }
 }
 
@@ -1922,27 +1062,18 @@ void UpdateDashboard()
 
    string dash = "=== ULTRABOT EA ===\n";
    dash += "STATUS: " + stateStr + "\n";
-   dash += "═══════════════════\n";
-   dash += "ACCOUNT:\n";
-   dash += "Equity: $" + DoubleToString(AccountEquity(), 2) + "\n";
-   dash += "Start: $" + DoubleToString(g_StartEquity, 2) + "\n";
-   dash += "Peak: $" + DoubleToString(g_PeakEquity, 2) + "\n";
+   dash += "Chart: " + Symbol() + "\n";
+   dash += "Account: $" + DoubleToString(AccountEquity(), 2) + "\n";
+   dash += "Daily Start: $" + DoubleToString(gDailyStartEquity, 2) + "\n";
    double dailyPL = AccountEquity() - gDailyStartEquity;
    dash += "Daily P/L: " + (dailyPL >= 0 ? "+" : "") + DoubleToString(dailyPL, 2) + "\n";
-   dash += "═══════════════════\n";
-   dash += "TODAY:\n";
-   dash += "Trades: " + IntegerToString(g_DailyTotalTrades) + "\n";
-   dash += "W/L: " + IntegerToString(g_DailyWins) + "/" + IntegerToString(g_DailyLosses) + "\n";
-   double dailyWR = (g_DailyTotalTrades > 0) ? (g_DailyWins / (double)g_DailyTotalTrades * 100.0) : 0;
-   dash += "Win Rate: " + DoubleToString(dailyWR, 1) + "%\n";
-   dash += "═══════════════════\n";
-   dash += "OVERALL:\n";
-   dash += "Total: " + IntegerToString(g_TotalTrades) + "\n";
-   dash += "W/L: " + IntegerToString(g_TotalWins) + "/" + IntegerToString(g_TotalLosses) + "\n";
-   double totalWR = (g_TotalTrades > 0) ? (g_TotalWins / (double)g_TotalTrades * 100.0) : 0;
-   dash += "Win Rate: " + DoubleToString(totalWR, 1) + "%\n";
-   dash += "═══════════════════\n";
-   dash += "Open: " + IntegerToString(OrdersTotal()) + " | Pairs: " + IntegerToString(PairCount) + "\n";
+   dash += "Open Trades: " + IntegerToString(OrdersTotal()) + "\n";
+   dash += "Tracked: " + IntegerToString(ArraySize(trackedTrades)) + "\n";
+   dash += "Monitoring: " + IntegerToString(PairCount) + " pairs\n";
+   dash += "Filters: V:" + (UseVolatilityFilter ? "Y" : "N") +
+           " M:" + (UseMACDFilter ? "Y" : "N") +
+           " N:" + (UseNewsFilter ? "Y" : "N") +
+           " C:" + (UseCorrelationFilter ? "Y" : "N") + "\n";
    dash += "Time: " + TimeToString(TimeCurrent(), TIME_DATE|TIME_MINUTES);
 
    if(ObjectFind(0, "UltraFoolDashboard") < 0)
@@ -2079,22 +1210,6 @@ int OnInit()
    gDailyStartEquity = AccountEquity();
    Print("Daily equity baseline set to $", gDailyStartEquity);
 
-   // Initialize statistics tracking
-   g_StartEquity = AccountEquity();
-   g_PeakEquity = g_StartEquity;
-   g_LastStatsReset = TimeCurrent();
-   g_DailyTotalTrades = 0;
-   g_DailyWins = 0;
-   g_DailyLosses = 0;
-   Print("Statistics tracking initialized - Starting Equity: $", g_StartEquity);
-
-   // OPTIMIZATION: Initialize signal tracking arrays
-   ArrayResize(g_LastSignalCheckTime, PairCount);
-   ArrayResize(g_LastSignalState, PairCount);
-   ArrayInitialize(g_LastSignalCheckTime, 0);
-   ArrayInitialize(g_LastSignalState, 0);
-   Print("Signal tracking optimization initialized (Bar Cooldown & Smart Logging)");
-
    // Print filter status
    Print("========================================");
    Print("FILTER SETTINGS:");
@@ -2124,10 +1239,6 @@ int OnInit()
 
    Print("=== UltraBot EA READY TO TRADE ===");
    Print("========================================");
-
-   // Initialize dashboard immediately
-   UpdateDashboard();
-
    return(INIT_SUCCEEDED);
 }
 
@@ -2148,12 +1259,6 @@ void OnTick()
 
    // Clean up stale tracked trades (manually closed, etc.)
    CleanupStaleTrackedTrades();
-
-   // Update statistics from closed trades
-   UpdateTradeStatistics();
-
-   // Print periodic status (every 30 min) so user knows EA is working
-   PrintPeriodicStatus();
 
    if(CheckDailyDrawdown())
    {
@@ -2183,14 +1288,8 @@ void OnTick()
       return;
    }
 
-   // Always update dashboard first so user can see EA is running
-   UpdateDashboard();
-
    if(!IsTradingSessionActive())
-   {
-      ManageOpenTrades();  // Still manage open trades even outside session
       return;
-   }
 
    RefreshRates();
    
@@ -2217,19 +1316,7 @@ void OnTick()
       }
       if(openCount > 0)
          continue;
-
-      // OPTIMIZATION: Bar Cooldown - Only check signals once per bar (reduces CPU & log spam)
-      if(UseBarCooldown)
-      {
-         datetime currentBarTime = iTime(sym, PERIOD_M5, 0);
-         if(g_LastSignalCheckTime[i] == currentBarTime)
-         {
-            // Already checked this bar, skip
-            continue;
-         }
-         g_LastSignalCheckTime[i] = currentBarTime;
-      }
-
+      
       // Check news filter and enter safe mode if needed
       if(UseNewsFilter)
       {

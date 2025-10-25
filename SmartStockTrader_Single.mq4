@@ -43,7 +43,7 @@ extern bool    RequireLicenseKey     = true;                           // Set FA
 //--------------------------------------------------------------------
 // EXTERNAL PARAMETERS
 //--------------------------------------------------------------------
-extern string  Stocks                = "AAPL,MSFT,GOOGL,AMZN,TSLA";  // Leave empty to use current chart symbol
+extern string  Stocks                = "AAPL,MSFT,GOOGL,AMZN,TSLA,NVDA,META,NFLX";  // Leave empty to use current chart symbol
 extern int     MagicNumber           = 555777;
 extern bool    EnableTrading         = true;
 extern bool    BacktestMode          = true;                         // Enable backtest features (24/7, verbose logs, no restrictions) - SET FALSE FOR LIVE
@@ -85,6 +85,8 @@ extern double  PartialCloseRRRatio   = 2.0;    // Take profit at 2:1 R:R
 extern bool    MoveToBreakeven       = true;   // Move SL to breakeven after partial close
 
 // ML-Driven Risk Management (NEW!)
+extern bool    UseMLPredictions      = true;   // Enable ML signal detection
+extern double  MLConfidenceThreshold = 60.0;   // Minimum ML confidence to trade (60-100%)
 extern bool    UseMLRiskManagement   = true;   // Adjust SL/TP based on ML confidence
 extern double  MLHighConfThreshold   = 75.0;   // High confidence threshold (%)
 extern double  MLLowConfThreshold    = 65.0;   // Low confidence threshold (%)
@@ -1305,15 +1307,61 @@ int OnInit() {
    Print("║  📊 Market Structure (PHASE 3A)       ║");
    Print("╚════════════════════════════════════════╝\n");
 
-   // If Stocks is empty or BacktestMode, use current chart symbol
-   if(Stocks == "" || BacktestMode) {
+   // If Stocks parameter is empty, use current chart symbol
+   // Otherwise, use the stock symbols from the Stocks parameter
+   if(Stocks == "") {
       g_SymbolCount = 1;
       ArrayResize(g_Symbols, 1);
       g_Symbols[0] = Symbol();
       if(VerboseLogging) Print("✓ Trading current chart symbol: ", Symbol());
    } else {
+      // Parse the stock list
       g_SymbolCount = ParseSymbols(Stocks, g_Symbols);
-      if(VerboseLogging) Print("✓ Trading ", g_SymbolCount, " symbols: ", Stocks);
+      if(VerboseLogging) Print("✓ Trading ", g_SymbolCount, " stock symbols: ", Stocks);
+
+      // In BacktestMode, use only the first stock or current chart symbol
+      if(BacktestMode) {
+         // Check if current chart symbol is in the stock list (with flexible matching for broker suffixes)
+         string currentSymbol = Symbol();
+         bool foundInList = false;
+
+         // Try exact match first
+         for(int i = 0; i < g_SymbolCount; i++) {
+            if(g_Symbols[i] == currentSymbol) {
+               foundInList = true;
+               break;
+            }
+         }
+
+         // If not exact match, try partial match (e.g., "NVDA" matches "NVDAm")
+         if(!foundInList) {
+            for(int i = 0; i < g_SymbolCount; i++) {
+               // Check if stock symbol is at the start of chart symbol (e.g., "NVDA" in "NVDAm")
+               if(StringFind(currentSymbol, g_Symbols[i]) == 0) {
+                  foundInList = true;
+                  if(VerboseLogging) Print("✓ Matched '", currentSymbol, "' with stock '", g_Symbols[i], "' (broker suffix detected)");
+                  break;
+               }
+            }
+         }
+
+         // If still not found, warn user but still trade current symbol
+         if(!foundInList) {
+            Print("⚠ WARNING: Current chart symbol (", currentSymbol, ") is NOT in your stock list!");
+            Print("⚠ Stock list: ", Stocks);
+            Print("⚠ This appears to be a FOREX/CFD symbol, not a stock!");
+            Print("⚠ For proper stock trading, please open a chart with one of the stock symbols.");
+            Print("⚠ Example: AAPL, MSFT, GOOGL, AMZN, TSLA, NVDA, META, NFLX");
+         } else {
+            if(VerboseLogging) Print("✓ Stock symbol validated: ", currentSymbol);
+         }
+
+         // In backtest, always use current chart symbol
+         g_SymbolCount = 1;
+         ArrayResize(g_Symbols, 1);
+         g_Symbols[0] = currentSymbol;
+         if(VerboseLogging) Print("✓ Backtest mode - using current chart symbol: ", currentSymbol);
+      }
    }
 
    if(BacktestMode) {

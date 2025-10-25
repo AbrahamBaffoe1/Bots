@@ -1043,42 +1043,104 @@ bool GetSellSignal(string symbol) {
 void UpdateDashboard() {
    if(!ShowDashboard) return;
 
-   int y = 20;
-   int lineHeight = 18;
+   int y = 15;
+   int lineHeight = 16;
+   int x = 10;
 
-   // Header
-   CreateLabel("SST_Header", 15, y, "=== SMART STOCK TRADER ===", clrAqua, 11);
+   // ══════════════════════════════════════════
+   // COMPACT PROFESSIONAL HEADER
+   // ══════════════════════════════════════════
+   CreateLabel("SST_Title", x, y, "SMART STOCK TRADER PRO", clrDodgerBlue, 11);
+   y += lineHeight + 2;
+
+   // Status indicator
+   color stateColor = (g_EAState == STATE_READY) ? clrLime : clrRed;
+   string stateText = (g_EAState == STATE_READY) ? "● ACTIVE" : "● PAUSED";
+   CreateLabel("SST_Status", x, y, stateText, stateColor, 9);
+
+   string mode = BacktestMode ? " | BACKTEST" : " | LIVE";
+   CreateLabel("SST_Mode", x + 80, y, mode, BacktestMode ? clrYellow : clrLime, 9);
    y += lineHeight + 5;
 
-   // State
-   color stateColor = (g_EAState == STATE_READY) ? clrLime : clrRed;
-   string stateName = (g_EAState == STATE_READY) ? "READY" : "SUSPENDED";
-   CreateLabel("SST_State", 15, y, "State: " + stateName, stateColor, 10);
+   // ══════════════════════════════════════════
+   // ACCOUNT SUMMARY
+   // ══════════════════════════════════════════
+   string accountInfo = "Account: #" + IntegerToString(AccountNumber()) + " | " + AccountCompany();
+   CreateLabel("SST_AccountInfo", x, y, accountInfo, clrAqua, 8);
    y += lineHeight;
 
-   // Account
-   CreateLabel("SST_Balance", 15, y, "Balance: $" + DoubleToString(AccountBalance(), 2), clrWhite);
-   y += lineHeight;
-   CreateLabel("SST_Equity", 15, y, "Equity:  $" + DoubleToString(AccountEquity(), 2), clrWhite);
-   y += lineHeight;
+   double balance = AccountBalance();
+   double equity = AccountEquity();
+   CreateLabel("SST_Account", x, y, "Balance: $" + DoubleToString(balance, 2) + " | Equity: $" + DoubleToString(equity, 2), clrWhite, 9);
+   y += lineHeight + 5;
 
-   // Daily P/L
+   // ══════════════════════════════════════════
+   // TODAY'S PERFORMANCE (Highlighted)
+   // ══════════════════════════════════════════
    double dailyPL = AccountEquity() - g_DailyStartEquity;
+   double dailyPct = (g_DailyStartEquity > 0) ? (dailyPL / g_DailyStartEquity * 100.0) : 0;
    color plColor = (dailyPL >= 0) ? clrLime : clrRed;
    string plSign = (dailyPL >= 0) ? "+" : "";
-   CreateLabel("SST_DailyPL", 15, y, "Daily P/L: " + plSign + "$" + DoubleToString(dailyPL, 2), plColor);
-   y += lineHeight + 3;
+   string plIcon = (dailyPL >= 0) ? "▲" : "▼";
 
-   // Today's stats
-   CreateLabel("SST_TodayHeader", 15, y, "--- Today's Stats ---", clrSilver);
+   CreateLabel("SST_DailyLabel", x, y, "TODAY'S P/L:", clrGold, 9);
    y += lineHeight;
-   CreateLabel("SST_Trades", 15, y, "Trades: " + IntegerToString(g_DailyTrades), clrWhite);
-   y += lineHeight;
-   CreateLabel("SST_WL", 15, y, "W/L: " + IntegerToString(g_DailyWins) + "/" + IntegerToString(g_DailyLosses), clrWhite);
-   y += lineHeight;
+   CreateLabel("SST_DailyPL", x, y, plIcon + " " + plSign + "$" + DoubleToString(dailyPL, 2) + " (" + plSign + DoubleToString(dailyPct, 2) + "%)", plColor, 12);
+   y += lineHeight + 5;
 
+   // ══════════════════════════════════════════
+   // TRADE STATISTICS (Compact)
+   // ══════════════════════════════════════════
    double winRate = (g_DailyTrades > 0) ? (g_DailyWins / (double)g_DailyTrades * 100.0) : 0;
-   CreateLabel("SST_WinRate", 15, y, "Win Rate: " + DoubleToString(winRate, 1) + "%", winRate >= 50 ? clrLime : clrOrange);
+   color wrColor = (winRate >= 70) ? clrLime : (winRate >= 50) ? clrYellow : clrRed;
+
+   CreateLabel("SST_TradesInfo", x, y, "Trades: " + IntegerToString(g_DailyTrades) + "/" + IntegerToString(MaxDailyTrades) + " | W/L: " + IntegerToString(g_DailyWins) + "/" + IntegerToString(g_DailyLosses), clrWhite, 9);
+   y += lineHeight;
+
+   CreateLabel("SST_WinRate", x, y, "Win Rate: " + DoubleToString(winRate, 1) + "%", wrColor, 10);
+   y += lineHeight + 5;
+
+   // ══════════════════════════════════════════
+   // OPEN POSITIONS
+   // ══════════════════════════════════════════
+   int openPos = 0;
+   double floatingPL = 0;
+   for(int i = 0; i < OrdersTotal(); i++) {
+      if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) {
+         if(OrderMagicNumber() == MagicNumber) {
+            openPos++;
+            floatingPL += OrderProfit() + OrderSwap() + OrderCommission();
+         }
+      }
+   }
+
+   if(openPos > 0) {
+      color fpColor = (floatingPL >= 0) ? clrLime : clrRed;
+      string fpSign = (floatingPL >= 0) ? "+" : "";
+      CreateLabel("SST_OpenPos", x, y, "Open: " + IntegerToString(openPos) + " | Floating: " + fpSign + "$" + DoubleToString(floatingPL, 2), fpColor, 9);
+   } else {
+      CreateLabel("SST_OpenPos", x, y, "Open: 0 | Floating: $0.00", clrGray, 9);
+   }
+   y += lineHeight + 8;
+
+   // ══════════════════════════════════════════
+   // SESSION TOTALS (Minimal)
+   // ══════════════════════════════════════════
+   CreateLabel("SST_SessionLabel", x, y, "SESSION TOTALS", clrDimGray, 8);
+   y += lineHeight - 2;
+
+   double sessionWR = (g_TotalTrades > 0) ? (g_TotalWins / (double)g_TotalTrades * 100.0) : 0;
+   double totalPL = g_TotalProfit - g_TotalLoss;
+   color tplColor = (totalPL >= 0) ? clrLime : clrRed;
+   string tplSign = (totalPL >= 0) ? "+" : "";
+
+   CreateLabel("SST_SessionStats", x, y, "Total: " + IntegerToString(g_TotalTrades) + " | WR: " + DoubleToString(sessionWR, 1) + "% | P/L: " + tplSign + "$" + DoubleToString(totalPL, 2), clrSilver, 8);
+   y += lineHeight + 5;
+
+   // ══════════════════════════════════════════
+   // FOOTER (Minimal)
+   // ══════════════════════════════════════════
+   CreateLabel("SST_Time", x, y, TimeToString(TimeCurrent(), TIME_DATE|TIME_MINUTES), clrDimGray, 7);
 }
 
 void CreateLabel(string name, int x, int y, string text, color clr = clrWhite, int fontSize = 9) {

@@ -11,13 +11,13 @@
 //--------------------------------------------------------------------
 // External Parameters
 //--------------------------------------------------------------------
-extern string  Pairs                = "EURUSD,GBPUSD,USDJPY,AUDUSD,USDCHF,NZDUSD,EURGBP,EURJPY,GBPJPY,AUDJPY,EURAUD,GBPAUD,EURNZD,GBPNZD,USDCAD,EURCAD,GBPCAD,AUDCAD,NZDCAD,CADCHF,CADJPY";  // All major forex pairs
-extern bool    TradeCurrentChartOnly = false;    // If true, only trades the current chart symbol
+extern string  Pairs                = "AAPL,MSFT,GOOGL,AMZN,TSLA,META,NVDA,AMD,NFLX,DIS";  // Stock symbols (only used if TradeCurrentChartOnly = false)
+extern bool    TradeCurrentChartOnly = true;    // If true, only trades the current chart symbol (RECOMMENDED for stock brokers)
 extern double  RiskPercentPerTrade  = 1.0;       // % risk per trade
 extern int     MagicNumber          = 987654;    // Unique EA identifier
 
 // Session filtering
-extern bool    UseMultiSession      = false;     // Set to false = trade 24/7
+extern bool    UseMultiSession      = false;     // FALSE = TRADE 24/7 ALL MARKETS (London, NY, Tokyo, Sydney)
 extern int     Session1Start        = 8;
 extern int     Session1End          = 12;
 extern int     Session2Start        = 14;
@@ -72,12 +72,12 @@ extern int     BreakoutBars           = 10;        // Lookback bars for breakout
 extern double  MaxSpreadPips          = 2.0;      // Maximum acceptable spread (pips) - STRICT for quality
 
 // NEW HYBRID SYSTEM FILTERS
-extern bool    UseIchimokuFilter      = true;     // Ichimoku Cloud confirmation
-extern bool    UseParabolicSAR        = true;     // Parabolic SAR trend confirmation
-extern bool    UseEnvelopeFilter      = true;     // Envelope channel filter
+extern bool    UseIchimokuFilter      = false;    // DISABLED - too strict (was true)
+extern bool    UseParabolicSAR        = false;    // DISABLED - too strict (was true)
+extern bool    UseEnvelopeFilter      = false;    // DISABLED - too strict (was true)
 extern double  EnvelopePercent        = 0.015;    // 1.5% envelope from MA
-extern bool    UseMultiTimeframe      = true;     // H4 + H1 + M5 confirmation
-extern bool    UseATRSweetSpot        = true;     // Only trade in optimal volatility range
+extern bool    UseMultiTimeframe      = false;    // DISABLED - too strict (was true)
+extern bool    UseATRSweetSpot        = false;    // DISABLED - allowing all volatility (was true)
 extern double  ATRMinThreshold        = 0.0003;   // Minimum ATR (avoid choppy markets)
 extern double  ATRMaxThreshold        = 0.0020;   // Maximum ATR (avoid wild swings)
 
@@ -88,17 +88,17 @@ extern int     PyramidMaxLevels       = 3;        // Maximum pyramid levels (1 =
 extern double  PyramidSizeMultiplier  = 1.0;      // Size of each addition (1.0 = same as initial)
 
 // HYBRID INTELLIGENCE SYSTEM - 85-90% WIN RATE
-extern bool    UseHybridIntelligence  = true;     // Enable adaptive quality mode
+extern bool    UseHybridIntelligence  = false;    // DISABLED for testing - use basic strategy (was true)
 extern bool    StrictMode             = false;    // TRUE = 90% mode (fewer trades), FALSE = 85% mode (balanced)
-extern bool    UseDailyTrendFilter    = true;     // Only trade WITH daily trend
-extern bool    UseKeyLevelFilter      = true;     // Only trade at support/resistance
-extern bool    UseFibonacciLevels     = true;     // Detect Fibonacci retracement levels
+extern bool    UseDailyTrendFilter    = false;    // DISABLED - was blocking trades (was true)
+extern bool    UseKeyLevelFilter      = false;    // DISABLED - was blocking trades (was true)
+extern bool    UseFibonacciLevels     = false;    // DISABLED - optional bonus filter (was true)
 extern bool    UseCandlePatterns      = true;     // Require strong candle confirmation
-extern bool    UseRetestConfirmation  = true;     // Wait for pullback + retest before entry
-extern bool    UseSessionFilter       = true;     // Only trade London/NY sessions
-extern bool    UseVolumeSpike         = true;     // Require volume confirmation
+extern bool    UseRetestConfirmation  = false;    // DISABLED - too strict (was true)
+extern bool    UseSessionFilter       = false;    // DISABLED - trade all hours (was true)
+extern bool    UseVolumeSpike         = false;    // DISABLED - too strict (was true)
 extern bool    UseMarketBias          = true;     // Check last 3 H1 candles for bias
-extern int     ADXTrendThreshold      = 30;       // ADX must be > 30 for strong trend (was 20)
+extern int     ADXTrendThreshold      = 15;       // ADX must be > 15 for trend mode (lowered for more trades - was 30)
 extern double  KeyLevelProximity      = 15.0;     // Max pips from key level to enter
 extern double  FibLevelProximity      = 10.0;     // Max pips from Fib level to enter
 extern double  VolumeMultiplier       = 1.5;      // Tick volume must be 1.5x average
@@ -2097,12 +2097,19 @@ int OnInit()
 
    // Print filter status
    Print("========================================");
+   Print("TRADING MODE: 24/7 ALL SESSIONS");
+   Print("  - Tokyo (Asian Session)");
+   Print("  - London (European Session)");
+   Print("  - New York (US Session)");
+   Print("  - Sydney (Pacific Session)");
+   Print("========================================");
    Print("FILTER SETTINGS:");
    Print("  Session Filter: ", (UseMultiSession ? "ENABLED" : "DISABLED - Trading 24/7"));
    Print("  News Filter: ", (UseNewsFilter ? "ENABLED" : "DISABLED"));
    Print("  Volatility Filter: ", (UseVolatilityFilter ? "ENABLED" : "DISABLED"));
    Print("  MACD Filter: ", (UseMACDFilter ? "ENABLED" : "DISABLED"));
    Print("  Correlation Filter: ", (UseCorrelationFilter ? "ENABLED" : "DISABLED"));
+   Print("  Hybrid Intelligence: ", (UseHybridIntelligence ? "ENABLED" : "DISABLED"));
    Print("  Max Spread: ", MaxSpreadPips, " pips");
    Print("========================================");
 

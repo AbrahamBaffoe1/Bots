@@ -6,7 +6,6 @@
 #property copyright "UltraBot Diagnostic MT5"
 #property link      ""
 #property version   "5.00"
-#property strict
 
 //--------------------------------------------------------------------
 // EXTERNAL PARAMETERS

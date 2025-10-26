@@ -1,0 +1,80 @@
+{
+  "mt5_bridge": {
+    "name": "MT5 Trading Bridge",
+    "version": "1.0.0",
+    "description": "WebSocket bridge for MT5 EA communication"
+  },
+  "expert_advisors": {
+    "stocksOnlymachine": {
+      "name": "Stock Trading EA",
+      "magic_number": 100001,
+      "symbols": ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "NVDA", "META", "NFLX"],
+      "timeframe": "H1",
+      "strategy": "RSI_MA",
+      "risk_percent": 1.0,
+      "max_spread": 50,
+      "trading_hours": {
+        "start": "09:30",
+        "end": "16:00",
+        "timezone": "America/New_York"
+      }
+    },
+    "GoldTrader": {
+      "name": "Gold Trading EA",
+      "magic_number": 200001,
+      "symbols": ["XAUUSD"],
+      "timeframe": "H1",
+      "strategy": "HYBRID",
+      "risk_percent": 0.5,
+      "max_spread": 30,
+      "sessions": {
+        "asian": false,
+        "london": true,
+        "ny": true
+      }
+    },
+    "forexMaster": {
+      "name": "Forex Multi-Currency EA",
+      "magic_number": 300001,
+      "symbols": ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD"],
+      "timeframe": "H1",
+      "strategy": "MULTI",
+      "risk_percent": 1.0,
+      "max_spread": 20,
+      "max_simultaneous_trades": 5,
+      "use_correlation": true
+    }
+  },
+  "risk_management": {
+    "global_max_risk": 5.0,
+    "max_daily_trades": 20,
+    "max_daily_loss": 3.0,
+    "use_trailing_stop": true,
+    "use_break_even": true,
+    "equity_stop_percent": 5.0
+  },
+  "indicators": {
+    "atr_period": 14,
+    "rsi_period": 14,
+    "ema_fast": 12,
+    "ema_slow": 26,
+    "macd_fast": 12,
+    "macd_slow": 26,
+    "macd_signal": 9,
+    "bollinger_period": 20,
+    "bollinger_deviation": 2.0
+  },
+  "websocket": {
+    "reconnect_attempts": 5,
+    "reconnect_delay": 5,
+    "ping_interval": 30,
+    "message_timeout": 60
+  },
+  "logging": {
+    "level": "INFO",
+    "console": true,
+    "file": true,
+    "max_file_size": "10MB",
+    "backup_count": 5
+  }
+}

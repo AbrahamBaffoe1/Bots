@@ -1,0 +1,154 @@
+; SmartStockTrader - PROFITABLE BALANCED CONFIGURATION
+; Strategy: Reduce strictness but maintain quality filters to avoid loose trades
+; Focus: Higher win rate (65-75%) with 3:1 to 4:1 risk-reward ratio
+; Expected: 2-5 high-quality trades per week (not per day!)
+; Created: 2025-10-24
+
+LicenseKey=SST-ENTERPRISE-W0674G-XF9XH9-89WA
+ExpirationDate=2026.12.31 23:59:59
+AuthorizedAccounts=
+RequireLicenseKey=true
+
+; ═══════════════════════════════════════════════════════════
+; SYMBOLS & CORE SETTINGS
+; ═══════════════════════════════════════════════════════════
+Stocks=AAPL,MSFT,GOOGL,AMZN,TSLA,NVDA,META,NFLX
+MagicNumber=555777
+EnableTrading=true
+BacktestMode=true
+VerboseLogging=true
+RiskPercentPerTrade=1.5
+MaxDailyLossPercent=4.0
+ShowDashboard=true
+SendNotifications=false
+
+; ═══════════════════════════════════════════════════════════
+; API INTEGRATION (disabled for backtest)
+; ═══════════════════════════════════════════════════════════
+API_BaseURL=http://localhost:5000
+API_UserEmail=Ifrey2heavens@gmail.com
+API_UserPassword=!bv2000gee4A!
+API_EnableSync=false
+API_EnableTradeSync=false
+API_EnableHeartbeat=false
+API_EnablePerfSync=false
+API_HeartbeatInterval=60
+API_PerfSyncInterval=300
+
+; ═══════════════════════════════════════════════════════════
+; SESSION SETTINGS - Trade during best hours only
+; ═══════════════════════════════════════════════════════════
+Trade24_7=false
+TradePreMarket=false
+TradeRegularHours=true
+TradeAfterHours=false
+BrokerGMTOffset=-5
+
+; ═══════════════════════════════════════════════════════════
+; RISK MANAGEMENT - Aggressive 4:1 R:R for profitability
+; ═══════════════════════════════════════════════════════════
+UseATRStops=true
+ATRMultiplierSL=1.2
+ATRMultiplierTP=4.8
+FixedStopLossPips=80
+FixedTakeProfitPips=320
+
+; ═══════════════════════════════════════════════════════════
+; SMART SCALING - Lock in profits early
+; ═══════════════════════════════════════════════════════════
+UseSmartScaling=true
+PartialClosePercent=30.0
+PartialCloseRRRatio=2.0
+MoveToBreakeven=true
+
+; ═══════════════════════════════════════════════════════════
+; ML RISK MANAGEMENT - Dynamic TP/SL based on confidence
+; ═══════════════════════════════════════════════════════════
+UseMLRiskManagement=true
+MLHighConfThreshold=70.0
+MLLowConfThreshold=60.0
+MLHighConfTPMultiplier=1.3
+MLLowConfSLMultiplier=0.85
+
+; ═══════════════════════════════════════════════════════════
+; STRATEGIES
+; ═══════════════════════════════════════════════════════════
+UseMomentumStrategy=true
+UseTrendFollowing=true
+UseBreakoutStrategy=true
+
+; ═══════════════════════════════════════════════════════════
+; INDICATORS - Balanced settings for quality signals
+; ═══════════════════════════════════════════════════════════
+FastMA_Period=10
+SlowMA_Period=50
+RSI_Period=14
+ATR_Period=14
+WPR_Period=14
+WPR_Oversold=-85
+WPR_Overbought=-15
+UseWilliamsR=true
+Envelope_Period=14
+Envelope_Deviation=0.1
+UseEnvelopes=false
+
+; ═══════════════════════════════════════════════════════════
+; MARKET STRUCTURE - ENABLED for quality (but relaxed)
+; This ensures we're trading WITH the trend structure
+; ═══════════════════════════════════════════════════════════
+UseMarketStructure=true
+UseSupportResistance=false
+SR_Lookback=100
+SR_Strength=3
+MinRoomToTarget=2.5
+UseOrderBlocks=false
+UseSupplyDemand=false
+DebugMode=false
+
+; ═══════════════════════════════════════════════════════════
+; 3-CONFLUENCE SNIPER - DISABLED (too strict)
+; We'll use individual quality filters instead
+; ═══════════════════════════════════════════════════════════
+Use3ConfluenceSniper=false
+D1_MA_Period=200
+H4_MA_Period=50
+H1_Fast_MA=10
+H1_Slow_MA=50
+MinVolumeMultiplier=1.3
+MinRoomToTargetRR=3.0
+UseMACD=true
+MACD_Fast=12
+MACD_Slow=26
+MACD_Signal=9
+
+; ═══════════════════════════════════════════════════════════
+; QUICK WIN FILTERS - Avoid bad trades
+; ═══════════════════════════════════════════════════════════
+MaxSpreadPips=3.0
+UseTimeOfDayFilter=true
+MaxDailyTrades=5
+MinMinutesBetweenTrades=30
+UseSPYTrendFilter=true
+MarketIndexSymbol=SPY
+SPYTrendMA=50
+
+; ═══════════════════════════════════════════════════════════
+; PHASE 1 FILTERS - Quality over quantity
+; ═══════════════════════════════════════════════════════════
+UseNewsFilter=true
+MinutesBeforeNews=30
+MinutesAfterNews=30
+TradeHighImpactNews=false
+TradeMediumImpactNews=false
+AutoDetectNewsSpike=true
+VolatilitySpikeThreshold=3
+UseCorrelationFilter=true
+MaxCorrelation=0.75
+
+; ═══════════════════════════════════════════════════════════
+; ADDITIONAL ML SETTINGS (if available in your modules)
+; ═══════════════════════════════════════════════════════════
+UseMLPredictions=true
+MLConfidenceThreshold=60.0
+MLAutoTrain=true
+MLTrainingPeriod=500

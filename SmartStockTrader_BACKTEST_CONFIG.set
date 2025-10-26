@@ -1,0 +1,118 @@
+; SmartStockTrader - BACKTEST DIAGNOSTIC CONFIGURATION
+; This configuration loosens filters to verify signal generation works
+; Created: 2025-10-24
+
+LicenseKey=SST-ENTERPRISE-W0674G-XF9XH9-89WA
+ExpirationDate=2026.12.31 23:59:59
+AuthorizedAccounts=
+RequireLicenseKey=true
+
+; SYMBOLS & CORE SETTINGS
+Stocks=AAPL,MSFT,GOOGL,AMZN,TSLA,NVDA,META,NFLX
+MagicNumber=555777
+EnableTrading=true
+BacktestMode=true
+VerboseLogging=true
+RiskPercentPerTrade=1.0
+MaxDailyLossPercent=5.0
+ShowDashboard=true
+SendNotifications=false
+
+; API INTEGRATION (disabled for backtest)
+API_BaseURL=http://localhost:5000
+API_UserEmail=Ifrey2heavens@gmail.com
+API_UserPassword=!bv2000gee4A!
+API_EnableSync=false
+API_EnableTradeSync=false
+API_EnableHeartbeat=false
+API_EnablePerfSync=false
+API_HeartbeatInterval=60
+API_PerfSyncInterval=300
+
+; SESSION SETTINGS
+Trade24_7=true
+TradePreMarket=false
+TradeRegularHours=true
+TradeAfterHours=false
+BrokerGMTOffset=-5
+
+; RISK MANAGEMENT
+UseATRStops=true
+ATRMultiplierSL=1.5
+ATRMultiplierTP=6.0
+FixedStopLossPips=100
+FixedTakeProfitPips=200
+
+; SMART SCALING
+UseSmartScaling=true
+PartialClosePercent=25.0
+PartialCloseRRRatio=2.0
+MoveToBreakeven=true
+
+; ML RISK MANAGEMENT
+UseMLRiskManagement=true
+MLHighConfThreshold=75.0
+MLLowConfThreshold=65.0
+MLHighConfTPMultiplier=1.2
+MLLowConfSLMultiplier=0.8
+
+; STRATEGIES
+UseMomentumStrategy=true
+UseTrendFollowing=true
+UseBreakoutStrategy=true
+
+; INDICATORS
+FastMA_Period=10
+SlowMA_Period=50
+RSI_Period=14
+ATR_Period=14
+WPR_Period=14
+WPR_Oversold=-80
+WPR_Overbought=-20
+UseWilliamsR=false
+Envelope_Period=14
+Envelope_Deviation=0.1
+UseEnvelopes=false
+
+; MARKET STRUCTURE - DISABLED FOR TESTING
+UseMarketStructure=false
+UseSupportResistance=false
+SR_Lookback=100
+SR_Strength=3
+MinRoomToTarget=3.0
+UseOrderBlocks=false
+UseSupplyDemand=false
+DebugMode=false
+
+; 3-CONFLUENCE SNIPER - DISABLED FOR TESTING
+Use3ConfluenceSniper=false
+D1_MA_Period=200
+H4_MA_Period=50
+H1_Fast_MA=10
+H1_Slow_MA=50
+MinVolumeMultiplier=1.5
+MinRoomToTargetRR=5.0
+UseMACD=true
+MACD_Fast=12
+MACD_Slow=26
+MACD_Signal=9
+
+; QUICK WIN FILTERS - RELAXED FOR TESTING
+MaxSpreadPips=5.0
+UseTimeOfDayFilter=false
+MaxDailyTrades=20
+MinMinutesBetweenTrades=5
+UseSPYTrendFilter=false
+MarketIndexSymbol=SPY
+SPYTrendMA=50
+
+; PHASE 1 FILTERS - SIMPLIFIED FOR TESTING
+UseNewsFilter=false
+MinutesBeforeNews=30
+MinutesAfterNews=30
+TradeHighImpactNews=false
+TradeMediumImpactNews=false
+AutoDetectNewsSpike=true
+VolatilitySpikeThreshold=3
+UseCorrelationFilter=false
+MaxCorrelation=0.7

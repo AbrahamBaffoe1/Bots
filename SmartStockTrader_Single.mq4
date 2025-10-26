@@ -85,8 +85,7 @@ extern double  PartialCloseRRRatio   = 2.0;    // Take profit at 2:1 R:R
 extern bool    MoveToBreakeven       = true;   // Move SL to breakeven after partial close
 
 // ML-Driven Risk Management (NEW!)
-extern bool    UseMLPredictions      = true;   // Enable ML signal detection
-extern double  MLConfidenceThreshold = 60.0;   // Minimum ML confidence to trade (60-100%)
+// Note: UseMLPredictions and MLConfidenceThreshold are defined in SST_MachineLearning.mqh
 extern bool    UseMLRiskManagement   = true;   // Adjust SL/TP based on ML confidence
 extern double  MLHighConfThreshold   = 75.0;   // High confidence threshold (%)
 extern double  MLLowConfThreshold    = 65.0;   // Low confidence threshold (%)
@@ -979,21 +978,71 @@ bool GetBuySignal(string symbol) {
    // REMOVED ENVELOPE FROM ENTRY - envelopes will only be used for exits
    // Contradictory logic eliminated: BUY only when price > MAs (bullish trend)
 
+   // Optional: MACD confirmation for higher quality signals (avoid false breakouts)
+   bool macdOK = true;
+   if(UseMACD) {
+      double macd_main = iMACD(symbol, PERIOD_H1, MACD_Fast, MACD_Slow, MACD_Signal, PRICE_CLOSE, MODE_MAIN, 0);
+      double macd_signal = iMACD(symbol, PERIOD_H1, MACD_Fast, MACD_Slow, MACD_Signal, PRICE_CLOSE, MODE_SIGNAL, 0);
+      double macd_prev = iMACD(symbol, PERIOD_H1, MACD_Fast, MACD_Slow, MACD_Signal, PRICE_CLOSE, MODE_MAIN, 1);
+
+      // For BUY: MACD should be positive OR recently crossed above signal line
+      bool macdPositive = (macd_main > 0);
+      bool macdCrossedUp = (macd_main > macd_signal && macd_prev <= macd_signal);
+      macdOK = (macdPositive || macdCrossedUp);
+
+      if(VerboseLogging && !macdOK) {
+         Print("  ✗ MACD not bullish (MACD: ", DoubleToString(macd_main, 5), ", Signal: ", DoubleToString(macd_signal, 5), ")");
+      }
+   }
+
    // Buy signal: Price above both MAs (trend), fastMA > slowMA (momentum), RSI 50-70 (bullish but not overbought), WPR recovering
-   if(close > fastMA && close > slowMA && fastMA > slowMA && rsi > 50 && rsi < 70 && wprOK) {
+   if(close > fastMA && close > slowMA && fastMA > slowMA && rsi > 50 && rsi < 70 && wprOK && macdOK) {
+      if(VerboseLogging) Print("  → Primary BUY conditions met (MA alignment + RSI + WPR + MACD)");
+
       // PHASE 1B: Volume confirmation - require institutional buying
-      if(!CheckVolumeFilter(symbol)) return false;
+      if(VerboseLogging) Print("  → Checking volume filter...");
+      if(!CheckVolumeFilter(symbol)) {
+         if(VerboseLogging) Print("  ✗ Volume filter FAILED");
+         return false;
+      }
+      if(VerboseLogging) Print("  ✓ Volume filter passed");
 
       // PHASE 1C: Multi-timeframe confirmation - H1 signal must align with H4/D1 trend
-      if(!CheckMultiTimeframeConfirmation(symbol, true)) return false;
+      if(VerboseLogging) Print("  → Checking multi-timeframe confirmation...");
+      if(!CheckMultiTimeframeConfirmation(symbol, true)) {
+         if(VerboseLogging) Print("  ✗ Multi-timeframe confirmation FAILED");
+         return false;
+      }
+      if(VerboseLogging) Print("  ✓ Multi-timeframe confirmation passed");
 
       // PHASE 3A: Market structure - require uptrend structure (higher highs/lows)
-      if(!CheckMarketStructure(symbol, true)) return false;
+      if(VerboseLogging) Print("  → Checking market structure...");
+      if(!CheckMarketStructure(symbol, true)) {
+         if(VerboseLogging) Print("  ✗ Market structure FAILED");
+         return false;
+      }
+      if(VerboseLogging) Print("  ✓ Market structure passed");
 
       // PHASE 3A: Support/Resistance - check room to target and entry at support
-      if(!CheckRoomToTarget(symbol, true)) return false;
+      if(VerboseLogging) Print("  → Checking room to target...");
+      if(!CheckRoomToTarget(symbol, true)) {
+         if(VerboseLogging) Print("  ✗ Room to target FAILED");
+         return false;
+      }
+      if(VerboseLogging) Print("  ✓ Room to target passed");
 
+      if(VerboseLogging) Print("  ✓✓✓ ALL BUY FILTERS PASSED!");
       return true;
+   } else {
+      if(VerboseLogging) {
+         Print("  ✗ Primary BUY conditions not met:");
+         Print("    - Price > Fast MA: ", (close > fastMA ? "YES" : "NO"), " (", DoubleToString(close, 2), " vs ", DoubleToString(fastMA, 2), ")");
+         Print("    - Price > Slow MA: ", (close > slowMA ? "YES" : "NO"), " (", DoubleToString(close, 2), " vs ", DoubleToString(slowMA, 2), ")");
+         Print("    - Fast MA > Slow MA: ", (fastMA > slowMA ? "YES" : "NO"));
+         Print("    - RSI 50-70: ", (rsi > 50 && rsi < 70 ? "YES" : "NO"), " (RSI = ", DoubleToString(rsi, 1), ")");
+         Print("    - WPR OK: ", (wprOK ? "YES" : "NO"));
+         Print("    - MACD OK: ", (macdOK ? "YES" : "NO"));
+      }
    }
    return false;
 }
@@ -1020,21 +1069,71 @@ bool GetSellSignal(string symbol) {
    // REMOVED ENVELOPE FROM ENTRY - envelopes will only be used for exits
    // Contradictory logic eliminated: SELL only when price < MAs (bearish trend)
 
+   // Optional: MACD confirmation for higher quality signals (avoid false breakouts)
+   bool macdOK = true;
+   if(UseMACD) {
+      double macd_main = iMACD(symbol, PERIOD_H1, MACD_Fast, MACD_Slow, MACD_Signal, PRICE_CLOSE, MODE_MAIN, 0);
+      double macd_signal = iMACD(symbol, PERIOD_H1, MACD_Fast, MACD_Slow, MACD_Signal, PRICE_CLOSE, MODE_SIGNAL, 0);
+      double macd_prev = iMACD(symbol, PERIOD_H1, MACD_Fast, MACD_Slow, MACD_Signal, PRICE_CLOSE, MODE_MAIN, 1);
+
+      // For SELL: MACD should be negative OR recently crossed below signal line
+      bool macdNegative = (macd_main < 0);
+      bool macdCrossedDown = (macd_main < macd_signal && macd_prev >= macd_signal);
+      macdOK = (macdNegative || macdCrossedDown);
+
+      if(VerboseLogging && !macdOK) {
+         Print("  ✗ MACD not bearish (MACD: ", DoubleToString(macd_main, 5), ", Signal: ", DoubleToString(macd_signal, 5), ")");
+      }
+   }
+
    // Sell signal: Price below both MAs (trend), fastMA < slowMA (momentum), RSI 30-50 (bearish but not oversold), WPR falling
-   if(close < fastMA && close < slowMA && fastMA < slowMA && rsi < 50 && rsi > 30 && wprOK) {
+   if(close < fastMA && close < slowMA && fastMA < slowMA && rsi < 50 && rsi > 30 && wprOK && macdOK) {
+      if(VerboseLogging) Print("  → Primary SELL conditions met (MA alignment + RSI + WPR + MACD)");
+
       // PHASE 1B: Volume confirmation - require institutional selling
-      if(!CheckVolumeFilter(symbol)) return false;
+      if(VerboseLogging) Print("  → Checking volume filter...");
+      if(!CheckVolumeFilter(symbol)) {
+         if(VerboseLogging) Print("  ✗ Volume filter FAILED");
+         return false;
+      }
+      if(VerboseLogging) Print("  ✓ Volume filter passed");
 
       // PHASE 1C: Multi-timeframe confirmation - H1 signal must align with H4/D1 trend
-      if(!CheckMultiTimeframeConfirmation(symbol, false)) return false;
+      if(VerboseLogging) Print("  → Checking multi-timeframe confirmation...");
+      if(!CheckMultiTimeframeConfirmation(symbol, false)) {
+         if(VerboseLogging) Print("  ✗ Multi-timeframe confirmation FAILED");
+         return false;
+      }
+      if(VerboseLogging) Print("  ✓ Multi-timeframe confirmation passed");
 
       // PHASE 3A: Market structure - require downtrend structure (lower highs/lows)
-      if(!CheckMarketStructure(symbol, false)) return false;
+      if(VerboseLogging) Print("  → Checking market structure...");
+      if(!CheckMarketStructure(symbol, false)) {
+         if(VerboseLogging) Print("  ✗ Market structure FAILED");
+         return false;
+      }
+      if(VerboseLogging) Print("  ✓ Market structure passed");
 
       // PHASE 3A: Support/Resistance - check room to target and entry at resistance
-      if(!CheckRoomToTarget(symbol, false)) return false;
+      if(VerboseLogging) Print("  → Checking room to target...");
+      if(!CheckRoomToTarget(symbol, false)) {
+         if(VerboseLogging) Print("  ✗ Room to target FAILED");
+         return false;
+      }
+      if(VerboseLogging) Print("  ✓ Room to target passed");
 
+      if(VerboseLogging) Print("  ✓✓✓ ALL SELL FILTERS PASSED!");
       return true;
+   } else {
+      if(VerboseLogging) {
+         Print("  ✗ Primary SELL conditions not met:");
+         Print("    - Price < Fast MA: ", (close < fastMA ? "YES" : "NO"), " (", DoubleToString(close, 2), " vs ", DoubleToString(fastMA, 2), ")");
+         Print("    - Price < Slow MA: ", (close < slowMA ? "YES" : "NO"), " (", DoubleToString(close, 2), " vs ", DoubleToString(slowMA, 2), ")");
+         Print("    - Fast MA < Slow MA: ", (fastMA < slowMA ? "YES" : "NO"));
+         Print("    - RSI 30-50: ", (rsi < 50 && rsi > 30 ? "YES" : "NO"), " (RSI = ", DoubleToString(rsi, 1), ")");
+         Print("    - WPR OK: ", (wprOK ? "YES" : "NO"));
+         Print("    - MACD OK: ", (macdOK ? "YES" : "NO"));
+      }
    }
    return false;
 }
@@ -1307,6 +1406,12 @@ int OnInit() {
    Print("║  📊 Market Structure (PHASE 3A)       ║");
    Print("╚════════════════════════════════════════╝\n");
 
+   // Force verbose logging in backtest mode EARLY
+   if(BacktestMode) {
+      VerboseLogging = true;
+      Print("✓ Verbose logging ENABLED for backtest diagnostics");
+   }
+
    // If Stocks parameter is empty, use current chart symbol
    // Otherwise, use the stock symbols from the Stocks parameter
    if(Stocks == "") {
@@ -1371,7 +1476,6 @@ int OnInit() {
       Print("║  - Verbose logging enabled            ║");
       Print("║  - Single symbol: ", Symbol(), "           ║");
       Print("╚════════════════════════════════════════╝");
-      VerboseLogging = true;  // Force verbose logging in backtest mode
    }
 
    // Display 24/7 trading status
@@ -1509,6 +1613,10 @@ void OnTick() {
    for(int i = 0; i < g_SymbolCount; i++) {
       string symbol = g_Symbols[i];
 
+      if(VerboseLogging) Print("═══════════════════════════════════════");
+      if(VerboseLogging) Print("═══ SCANNING ", symbol, " (", (i+1), "/", g_SymbolCount, ") ═══");
+      if(VerboseLogging) Print("═══════════════════════════════════════");
+
       // Check if already have position
       bool hasPosition = false;
       int existingTicket = -1;
@@ -1639,6 +1747,12 @@ void OnTick() {
       // Check for traditional signals
       bool buySignal = GetBuySignal(symbol);
       bool sellSignal = GetSellSignal(symbol);
+
+      if(VerboseLogging) {
+         if(buySignal) Print("→ ", symbol, " - BUY signal detected (traditional)");
+         else if(sellSignal) Print("→ ", symbol, " - SELL signal detected (traditional)");
+         else Print("○ ", symbol, " - No traditional signals on this candle");
+      }
 
       // Combine ML with traditional signals
       bool hasSignal = false;

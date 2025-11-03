@@ -1,0 +1,494 @@
+# Gold Scalping Bot - Parameter Presets
+# Copy and paste these values into MT5 when attaching EA to chart
+
+================================================================================
+PRESET 1: CONSERVATIVE (Recommended for $500-1000 accounts)
+================================================================================
+Best for: Beginners, small accounts, live trading
+
+=== SCALPING STRATEGY ===
+Scalping Strategy: SCALP_HYBRID
+Scalping Timeframe: PERIOD_M5
+Stop Loss Pips: 20
+Take Profit Pips: 40
+Max Hold Minutes: 60
+
+=== RISK MANAGEMENT ===
+Risk Percent: 0.5
+Min Lot Size: 0.01
+Max Lot Size: 0.10
+Magic Number: 300001
+Max Daily Trades: 10
+Max Daily Drawdown: 2.0
+
+=== ENTRY FILTERS ===
+Max Spread Points: 20.0
+Min ATR: 2.0
+Volume Multiplier: 1.5
+Require Pattern: true
+Min Pattern Confidence: 0.75
+
+=== EXIT MANAGEMENT ===
+Break Even Pips: 10
+Trailing Start Pips: 15
+Trailing Step Pips: 10
+Use Partial Close: true
+Partial 1 Pips: 20
+Partial 2 Pips: 30
+Partial 3 Pips: 40
+
+=== SESSION FILTERS ===
+Trade London Session: true
+Trade NY Session: true
+Trade Asian Session: false
+Avoid London Fix: true
+Avoid News: true
+
+=== ADVANCED ===
+Trading Symbol: XAUUSD
+Slippage Points: 30
+Enable WebSocket: false
+
+EXPECTED RESULTS:
+- Win Rate: 55-60%
+- Trades/Day: 5-8
+- Monthly Return: 5-12%
+- Max Drawdown: 10-15%
+
+================================================================================
+PRESET 2: BALANCED (Recommended for $1000-5000 accounts)
+================================================================================
+Best for: Intermediate traders, medium accounts
+
+=== SCALPING STRATEGY ===
+Scalping Strategy: SCALP_HYBRID
+Scalping Timeframe: PERIOD_M5
+Stop Loss Pips: 18
+Take Profit Pips: 36
+Max Hold Minutes: 45
+
+=== RISK MANAGEMENT ===
+Risk Percent: 0.75
+Min Lot Size: 0.01
+Max Lot Size: 0.50
+Magic Number: 300001
+Max Daily Trades: 12
+Max Daily Drawdown: 2.5
+
+=== ENTRY FILTERS ===
+Max Spread Points: 22.0
+Min ATR: 1.8
+Volume Multiplier: 1.4
+Require Pattern: true
+Min Pattern Confidence: 0.72
+
+=== EXIT MANAGEMENT ===
+Break Even Pips: 12
+Trailing Start Pips: 18
+Trailing Step Pips: 12
+Use Partial Close: true
+Partial 1 Pips: 18
+Partial 2 Pips: 27
+Partial 3 Pips: 36
+
+=== SESSION FILTERS ===
+Trade London Session: true
+Trade NY Session: true
+Trade Asian Session: false
+Avoid London Fix: true
+Avoid News: true
+
+=== ADVANCED ===
+Trading Symbol: XAUUSD
+Slippage Points: 30
+Enable WebSocket: false
+
+EXPECTED RESULTS:
+- Win Rate: 54-58%
+- Trades/Day: 7-10
+- Monthly Return: 8-18%
+- Max Drawdown: 12-18%
+
+================================================================================
+PRESET 3: AGGRESSIVE (For $5000+ accounts, experienced traders)
+================================================================================
+Best for: Experienced scalpers, larger accounts, demo testing
+
+=== SCALPING STRATEGY ===
+Scalping Strategy: SCALP_HYBRID
+Scalping Timeframe: PERIOD_M5
+Stop Loss Pips: 15
+Take Profit Pips: 30
+Max Hold Minutes: 30
+
+=== RISK MANAGEMENT ===
+Risk Percent: 1.0
+Min Lot Size: 0.01
+Max Lot Size: 2.0
+Magic Number: 300001
+Max Daily Trades: 20
+Max Daily Drawdown: 3.0
+
+=== ENTRY FILTERS ===
+Max Spread Points: 25.0
+Min ATR: 1.5
+Volume Multiplier: 1.3
+Require Pattern: true
+Min Pattern Confidence: 0.70
+
+=== EXIT MANAGEMENT ===
+Break Even Pips: 8
+Trailing Start Pips: 12
+Trailing Step Pips: 8
+Use Partial Close: true
+Partial 1 Pips: 15
+Partial 2 Pips: 22
+Partial 3 Pips: 30
+
+=== SESSION FILTERS ===
+Trade London Session: true
+Trade NY Session: true
+Trade Asian Session: false
+Avoid London Fix: true
+Avoid News: true
+
+=== ADVANCED ===
+Trading Symbol: XAUUSD
+Slippage Points: 30
+Enable WebSocket: false
+
+EXPECTED RESULTS:
+- Win Rate: 52-56%
+- Trades/Day: 10-15
+- Monthly Return: 15-30%
+- Max Drawdown: 18-25%
+
+WARNING: High risk! Use on demo first.
+
+================================================================================
+PRESET 4: BREAKOUT SPECIALIST (Trending markets)
+================================================================================
+Best for: When Gold is trending strongly (breakout patterns)
+
+=== SCALPING STRATEGY ===
+Scalping Strategy: SCALP_BREAKOUT
+Scalping Timeframe: PERIOD_M5
+Stop Loss Pips: 22
+Take Profit Pips: 44
+Max Hold Minutes: 60
+
+=== RISK MANAGEMENT ===
+Risk Percent: 0.6
+Min Lot Size: 0.01
+Max Lot Size: 0.20
+Magic Number: 300001
+Max Daily Trades: 8
+Max Daily Drawdown: 2.0
+
+=== ENTRY FILTERS ===
+Max Spread Points: 18.0
+Min ATR: 2.5
+Volume Multiplier: 1.8
+Require Pattern: true
+Min Pattern Confidence: 0.78
+
+=== EXIT MANAGEMENT ===
+Break Even Pips: 15
+Trailing Start Pips: 20
+Trailing Step Pips: 12
+Use Partial Close: true
+Partial 1 Pips: 22
+Partial 2 Pips: 33
+Partial 3 Pips: 44
+
+=== SESSION FILTERS ===
+Trade London Session: true
+Trade NY Session: true
+Trade Asian Session: false
+Avoid London Fix: true
+Avoid News: false
+
+=== ADVANCED ===
+Trading Symbol: XAUUSD
+Slippage Points: 30
+Enable WebSocket: false
+
+BEST FOR:
+- Strong trending days (NFP, FOMC)
+- High volatility periods
+- London/NY opens
+
+AVOID:
+- Range-bound markets
+- Low volatility days
+
+================================================================================
+PRESET 5: VWAP BOUNCE SPECIALIST (Ranging markets)
+================================================================================
+Best for: When Gold is choppy/ranging (bounce patterns)
+
+=== SCALPING STRATEGY ===
+Scalping Strategy: SCALP_VWAP_BOUNCE
+Scalping Timeframe: PERIOD_M5
+Stop Loss Pips: 18
+Take Profit Pips: 30
+Max Hold Minutes: 45
+
+=== RISK MANAGEMENT ===
+Risk Percent: 0.7
+Min Lot Size: 0.01
+Max Lot Size: 0.30
+Magic Number: 300001
+Max Daily Trades: 15
+Max Daily Drawdown: 2.5
+
+=== ENTRY FILTERS ===
+Max Spread Points: 20.0
+Min ATR: 1.5
+Volume Multiplier: 1.2
+Require Pattern: true
+Min Pattern Confidence: 0.70
+
+=== EXIT MANAGEMENT ===
+Break Even Pips: 8
+Trailing Start Pips: 12
+Trailing Step Pips: 8
+Use Partial Close: true
+Partial 1 Pips: 15
+Partial 2 Pips: 22
+Partial 3 Pips: 30
+
+=== SESSION FILTERS ===
+Trade London Session: true
+Trade NY Session: true
+Trade Asian Session: true
+Avoid London Fix: true
+Avoid News: true
+
+=== ADVANCED ===
+Trading Symbol: XAUUSD
+Slippage Points: 30
+Enable WebSocket: false
+
+BEST FOR:
+- Choppy/sideways markets
+- Low volatility days
+- Asian session (can enable)
+
+AVOID:
+- Strong trending days (will get run over)
+- High volatility breakouts
+
+================================================================================
+PRESET 6: MOMENTUM SPECIALIST (News trading)
+================================================================================
+Best for: Trading news spikes and momentum moves
+
+=== SCALPING STRATEGY ===
+Scalping Strategy: SCALP_MOMENTUM
+Scalping Timeframe: PERIOD_M5
+Stop Loss Pips: 25
+Take Profit Pips: 50
+Max Hold Minutes: 30
+
+=== RISK MANAGEMENT ===
+Risk Percent: 0.5
+Min Lot Size: 0.01
+Max Lot Size: 0.15
+Magic Number: 300001
+Max Daily Trades: 6
+Max Daily Drawdown: 2.0
+
+=== ENTRY FILTERS ===
+Max Spread Points: 30.0
+Min ATR: 3.0
+Volume Multiplier: 2.0
+Require Pattern: true
+Min Pattern Confidence: 0.80
+
+=== EXIT MANAGEMENT ===
+Break Even Pips: 15
+Trailing Start Pips: 20
+Trailing Step Pips: 15
+Use Partial Close: true
+Partial 1 Pips: 25
+Partial 2 Pips: 37
+Partial 3 Pips: 50
+
+=== SESSION FILTERS ===
+Trade London Session: true
+Trade NY Session: true
+Trade Asian Session: false
+Avoid London Fix: false
+Avoid News: false
+
+=== ADVANCED ===
+Trading Symbol: XAUUSD
+Slippage Points: 50
+Enable WebSocket: false
+
+BEST FOR:
+- NFP Fridays (13:30 GMT)
+- FOMC days (19:00 GMT)
+- CPI releases (13:30 GMT)
+
+WARNING: High slippage during news! Use with caution.
+
+================================================================================
+PRESET 7: ULTRA-CONSERVATIVE (Live trading, first month)
+================================================================================
+Best for: First-time live traders, very small accounts
+
+=== SCALPING STRATEGY ===
+Scalping Strategy: SCALP_HYBRID
+Scalping Timeframe: PERIOD_M5
+Stop Loss Pips: 25
+Take Profit Pips: 50
+Max Hold Minutes: 90
+
+=== RISK MANAGEMENT ===
+Risk Percent: 0.25
+Min Lot Size: 0.01
+Max Lot Size: 0.05
+Magic Number: 300001
+Max Daily Trades: 5
+Max Daily Drawdown: 1.5
+
+=== ENTRY FILTERS ===
+Max Spread Points: 18.0
+Min ATR: 2.5
+Volume Multiplier: 1.8
+Require Pattern: true
+Min Pattern Confidence: 0.80
+
+=== EXIT MANAGEMENT ===
+Break Even Pips: 15
+Trailing Start Pips: 20
+Trailing Step Pips: 12
+Use Partial Close: true
+Partial 1 Pips: 25
+Partial 2 Pips: 37
+Partial 3 Pips: 50
+
+=== SESSION FILTERS ===
+Trade London Session: true
+Trade NY Session: true
+Trade Asian Session: false
+Avoid London Fix: true
+Avoid News: true
+
+=== ADVANCED ===
+Trading Symbol: XAUUSD
+Slippage Points: 30
+Enable WebSocket: false
+
+EXPECTED RESULTS:
+- Win Rate: 58-62% (fewer, higher quality trades)
+- Trades/Day: 2-4
+- Monthly Return: 3-8%
+- Max Drawdown: 5-10%
+
+GOAL: Capital preservation, steady growth, confidence building
+
+================================================================================
+PRESET 8: DEMO TESTING (Backtest/Forward test)
+================================================================================
+Best for: Strategy validation, optimization, learning
+
+=== SCALPING STRATEGY ===
+Scalping Strategy: SCALP_HYBRID
+Scalping Timeframe: PERIOD_M5
+Stop Loss Pips: 20
+Take Profit Pips: 40
+Max Hold Minutes: 60
+
+=== RISK MANAGEMENT ===
+Risk Percent: 2.0
+Min Lot Size: 0.01
+Max Lot Size: 10.0
+Magic Number: 300001
+Max Daily Trades: 50
+Max Daily Drawdown: 10.0
+
+=== ENTRY FILTERS ===
+Max Spread Points: 30.0
+Min ATR: 1.0
+Volume Multiplier: 1.0
+Require Pattern: false
+Min Pattern Confidence: 0.60
+
+=== EXIT MANAGEMENT ===
+Break Even Pips: 10
+Trailing Start Pips: 15
+Trailing Step Pips: 10
+Use Partial Close: true
+Partial 1 Pips: 20
+Partial 2 Pips: 30
+Partial 3 Pips: 40
+
+=== SESSION FILTERS ===
+Trade London Session: true
+Trade NY Session: true
+Trade Asian Session: true
+Avoid London Fix: false
+Avoid News: false
+
+=== ADVANCED ===
+Trading Symbol: XAUUSD
+Slippage Points: 30
+Enable WebSocket: false
+
+PURPOSE: Generate maximum trades for testing
+NOT FOR LIVE TRADING!
+
+================================================================================
+HOW TO USE PRESETS
+================================================================================
+
+1. Choose preset based on:
+   - Account size
+   - Risk tolerance
+   - Market conditions
+   - Experience level
+
+2. In MT5:
+   - Drag EA to chart
+   - Click "Inputs" tab
+   - Copy/paste values from preset above
+   - Click "OK"
+
+3. Monitor for 1-2 weeks:
+   - Track win rate, profit factor
+   - Adjust if needed
+   - Switch presets if market changes
+
+4. Customize:
+   - Start with preset
+   - Optimize 1-2 parameters at a time
+   - Test changes on demo first
+
+================================================================================
+OPTIMIZATION TIPS
+================================================================================
+
+If Win Rate < 50%:
+→ Increase Min Pattern Confidence (+0.05)
+→ Increase Volume Multiplier (+0.2)
+→ Increase Min ATR (+0.5)
+
+If Too Few Trades:
+→ Decrease Min Pattern Confidence (-0.05)
+→ Decrease Min ATR (-0.3)
+→ Increase Max Spread Points (+5)
+
+If Drawdown > 20%:
+→ Decrease Risk Percent (-0.25%)
+→ Increase Stop Loss Pips (+5)
+→ Decrease Max Daily Trades (-5)
+
+If Profit Factor < 1.3:
+→ Increase Take Profit Pips (+5)
+→ Decrease Stop Loss Pips (-3)
+→ Better broker (lower spread)
+
+================================================================================

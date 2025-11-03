@@ -1,0 +1,311 @@
+Nice — I’ll turn that into a **complete, developer-ready specification** that includes everything you just asked for: candlestick patterns + RSI + multi-TF confirmation, strict “at least 5 trades” rule that won’t blow a $50 account, clear profit-close rules (1% target plus practical tweaks), stop-loss/drawdown/emergency-close logic, exact formulas, pseudocode, test instructions, and warnings. I’ll be honest and explicit where the idea hits broker/physics limits (margin, minimum lot, spread) so developers and stakeholders don’t get burned.
+
+# Gold Scalping Bot — Developer Specification (final)
+
+**Mode:** Scalping on M5 (entries) with confirmation on M30 or H1.
+**Core idea:** Open a batch of trades (≥5 when balance allows) sized by balance, monitor *total floating profit*, close *all* when total profit ≥ **1% of account balance** (adjusted to cover spread/fees), then immediately re-open if higher-TF trend still valid. Use candlestick pattern + RSI to reduce false entries and reduce number of trades.
+
+---
+
+## 1 — High level rules (concise)
+
+1. Confirm trend on **M30 or H1** (EMA50 > EMA200 → bullish; EMA50 < EMA200 → bearish). Use H1 when available; fallback to M30.
+2. Wait for **M5** entry trigger: one of a set of candlestick pattern signals **AND** RSI filter (details below).
+3. When entry confirmed, open a **batch of N trades** (N = min( max_trades_for_balance, requested_min_trades ) ). Requested minimum is **5** but only if balance & margin permit; otherwise open as many as safely possible (see margin check).
+4. Monitor **total floating profit** for all bot positions on symbol. When `total_floating_profit >= profit_target`, close *all* positions in the batch.
+5. Immediately re-evaluate higher-TF trend; if trend unchanged, reopen a new batch. If reversed, wait for new confirmation.
+6. Always obey safety limits: per-trade SL, equity drawdown stop, max open trades, spread filter, session/time filters.
+
+---
+
+## 2 — Definitions & units
+
+* **Symbol**: `XAUUSD` (configurable to broker symbol)
+* **Pip/point for Gold**: use **price units (USD)** or broker point. *Do not assume “1 pip = $0.0001” like FX.* Use broker tick size. All calculations should be in **USD profit** and **points** (ticks) derived from price.
+* **Lot / contract**: Use broker minimum lot (often **0.01**). BOT must query `symbol_info` for `volume_min`, `volume_step`, `margin_rate`, etc.
+* **Profit target**: **1% of account balance** (configurable), but effective target = `max( 1% balance, min_profit_usd )` and must cover spreads/fees. See suggestions below.
+* **ATR**: Average True Range (ATR(14)) used to set dynamic SL/entry spacing.
+
+---
+
+## 3 — Signal rules (exact)
+
+A. **Higher timeframe trend confirmation (M30/H1):**
+
+* Compute EMA50 and EMA200 on chosen confirm TF.
+* Condition:
+
+  * `trend = BUY` if `EMA50 > EMA200 + trend_margin`
+  * `trend = SELL` if `EMA50 < EMA200 - trend_margin`
+* `trend_margin` optional small offset to avoid noise (e.g., 0.1% of price).
+
+B. **Entry TF (M5) conditions — combine candlestick patterns + RSI + small EMA alignment**
+
+1. **Candlestick patterns:** require *one* of:
+
+   * Bullish: Hammer / Bullish Engulfing / Morning Star / Piercing Line / Bullish Harami breakout (for BUY)
+   * Bearish: Shooting Star / Bearish Engulfing / Evening Star / Dark Cloud Cover / Bearish Harami breakout (for SELL)
+   * Pattern must form on the **last closed M5 candle** (not the forming candle).
+2. **RSI filter (RSI14):**
+
+   * For **BUY** accept if `RSI14 < rsi_upper_buy` OR if `RSI14` crossing up through `rsi_entry_level`. Example: `RSI14 <= 55` and prefer when between 30–55. Avoid RSI > 70 entries.
+   * For **SELL** accept if `RSI14 >= rsi_lower_sell` OR `RSI14` crossing down through `rsi_entry_level`. Example: `RSI14 >= 45` and prefer when between 45–70. Avoid RSI < 30 entries.
+   * These settings reduce overtrading — tune to reduce trades.
+3. **M5 EMA confirmation:** optional `EMA20` > `EMA50` for BUY or `<` for SELL. This is secondary to pattern+RSI.
+4. **Volume / higher TF momentum (optional):** ensure M5 candle that formed signal has volume > average or momentum (if feed provides volume).
+
+**Entry allowed only if all three (trend confirmation, candlestick signal, RSI filter) are satisfied.**
+
+---
+
+## 4 — Position sizing & “many trades” rule (precise)
+
+Goal: at least **5 trades** ideally, but never violate margin/minimum lot.
+
+### Parameters (configurable)
+
+* `MIN_REQUESTED_TRADES = 5` (user request)
+* `MAX_TRADES_CAP = 10` (safety)
+* `BASE_LOT_PER_1000 = 0.01` (starting baseline: 0.01 lot per $1k balance) — *but this is only an example; must conform to broker minimums*.
+* `LOT_STEP_SCALE = 1.5` (scaling between trades; geometric scaling to increase profit share with risk)
+* `MIN_LOT = symbol.volume_min` (query from broker)
+* `MAX_TOTAL_LOT = config` (e.g., 5.0 lots overall cap)
+* `MARGIN_BUFFER = 1.15` (ensure we leave 15% margin buffer)
+
+### Actual algorithm
+
+1. Query `balance`, `free_margin`, `symbol_info` (margin_per_lot estimate), `volume_min`, `volume_step`.
+2. Compute `max_trades_by_balance = floor( free_margin / (margin_per_min_lot * MIN_REQUESTED_TRADES * MARGIN_BUFFER) )` — rough check. This prevents trying to open more trades than margin allows.
+3. `num_trades = min( MAX_TRADES_CAP, max(MIN_REQUESTED_TRADES, max_trades_by_balance) )` but ensure `num_trades >= 1`.
+4. Compute `base_lot`:
+
+   * Conservative formula to protect small balances:
+
+     ```
+     base_lot = max(MIN_LOT, round_to_step( (balance / 2000) * 0.01 , volume_step) )
+     ```
+
+     Explanation: for $50 balance, `(50/2000)*0.01 = 0.00025` → below MIN_LOT → base_lot becomes MIN_LOT (likely 0.01), but we must check margin; if margin insufficient, reduce `num_trades`.
+5. Scale lots across the batch:
+
+   * Either **equal lots**: `lot_i = base_lot`
+   * Or **geometric** (recommended): `lot_i = base_lot * LOT_STEP_SCALE^(i-1)` for i in 1..num_trades, but ensure `sum(lot_i) <= max_total_lot` and margin checks pass. Geometric gives more profit when winners occur.
+6. Always test cumulative margin required: `required_margin = sum( lot_i * margin_per_1lot ) * (1 + margin_buffer)`. If `required_margin > free_margin`, reduce `num_trades` or `base_lot` until it fits.
+
+**Important for $50 starting balances:** many brokers won’t allow meaningful gold trades with $50. You must either:
+
+* Use a broker that supports **micro-lots** (0.001) or **CFD with small contract sizes**, or
+* Increase balance, or
+* Accept extremely low trade counts (maybe 1 trade) initially; the bot must gracefully degrade `num_trades` to a safe number.
+
+---
+
+## 5 — Profit target, pip/points guidance & closing rule
+
+You proposed: `close when total floating profit ≥ 1% of account balance`. Good — but practically:
+
+### Problems with raw 1% on microscopic balances:
+
+* For $50, 1% = $0.50. That is smaller than spread + commission in most brokers on gold → impossible to reach profit after costs.
+* Therefore: compute **effective profit target**:
+
+  ```
+  effective_target_usd = max( balance * 0.01, estimated_costs )
+  estimated_costs = (spread_in_usd_per_trade * num_trades) + commission + min_profit_floor
+  ```
+
+  Suggest `min_profit_floor = $1.5` or `50% of average spread*trades` whichever is larger.
+
+### Practical closing guidance (points/pips)
+
+* Use **points** based on ATR(14) on M5 to compute realistic target distance:
+
+  * `avg_ATR = ATR(14, M5)  # in price units (USD)`
+  * `avg_takeprofit_points_per_trade = clamp( avg_ATR * takeprofit_atr_factor, min_tp_points, max_tp_points )`
+
+    * Suggested: `takeprofit_atr_factor = 0.25` (scalp small fraction of ATR)
+    * `min_tp_points` = spread * 2 (at least cover spread)
+    * `max_tp_points` = avg_ATR * 0.6
+* But you **do not** rely on per-trade TP; instead you **close all** when **combined USD floating profit** ≥ `effective_target_usd`.
+
+### Example:
+
+* Balance = $1,000 → 1% = $10.
+* num_trades = 5, each 0.02 lots.
+* Spread XAUUSD ~= $0.40 per lot (example) → spread_cost ≈ $0.40 * 5 = $2.0.
+* effective_target_usd = max($10, $2 + $1.5) = $10. Close when total floating profit ≥ $10.
+
+**Recommendation:** configure `PROFIT_TARGET = max(1% of balance, fixed_min_profit_usd)` where `fixed_min_profit_usd` is set to cover costs (suggest $2–$5 depending on broker).
+
+---
+
+## 6 — Stop Loss, Drawdown, Emergency Close
+
+### Per-trade Stop Loss
+
+* **Primary method:** use dynamic SL based on ATR(14, M5):
+
+  ```
+  SL_points = round( ATR_M5 * sl_atr_multiplier )
+  ```
+
+  Suggested `sl_atr_multiplier = 0.6` (tight scalp) to `1.0` (safer). Ensure min SL ≥ spread*2.
+
+* If using per-trade SL, the per-trade risk (USD) = `SL_points * lot_contract_value * lot_size`. Bot must check this won’t exceed `max_risk_per_trade` (configurable; e.g., 0.2% of balance).
+
+### Equity / Drawdown Guard
+
+* **Hard stop (global):** If `equity <= balance_at_cycle_start * (1 - MAX_DRAWDOWN_PERCENT)` then close all and **halt** bot until manual restart.
+
+  * Suggested `MAX_DRAWDOWN_PERCENT = 10%`.
+* **Cycle-level stop:** If total floating loss across open batch < `-max_loss_per_cycle_usd` (e.g., -2% of balance), close all to prevent runaway losses.
+
+### Emergency close on opposite signal
+
+* If a strong **opposite** higher-TF confirmation forms (EMA flip) OR a strong opposite candlestick pattern on M5, the bot **immediately** closes all open trades for safety.
+
+### Dynamic hedge (optional advanced)
+
+* Instead of immediate close, bot can open a **hedge** (opposite direction smaller lot) to reduce exposure in transitional markets. Only use if broker supports hedging and development team understands margin implications.
+
+---
+
+## 7 — Trade lifecycle pseudocode (developer-friendly)
+
+```python
+# CONFIG values are read from config.json / ENV
+
+while True:
+    balance = get_balance()
+    if balance < balance_min_allowed:
+        sleep(retry_time); continue
+
+    trend = detect_trend(confirm_tf)  # EMA50/200
+    if not trend: sleep(1); continue
+
+    wait_for_m5_close()  # ensure entry only on closed candle
+
+    m5_pattern = detect_candlestick_pattern(last_closed_m5_candle)
+    m5_rsi = rsi(symbol, M5, 14)
+
+    if pattern_valid_for(trend, m5_pattern) and rsi_valid_for(trend, m5_rsi) and m5_ema_aligns():
+        # compute sizing & batch
+        free_margin = get_free_margin()
+        margin_per_lot = estimate_margin_per_1lot(symbol)
+        num_trades = determine_num_trades(balance, free_margin, margin_per_lot, MIN_REQUESTED_TRADES)
+        lot_list = compute_lot_sizes(base_lot, num_trades, LOT_STEP_SCALE)
+        if not margin_ok(lot_list, free_margin): reduce_lots_or_trades()
+        # do not proceed if too small to cover spread & fees
+        if num_trades == 0: continue
+
+        open_batch_positions(direction=trend, lots=lot_list, sl=compute_sl_by_atr(), comment=MAGIC)
+        cycle_start_balance = balance
+        while batch_open():
+            total_profit = compute_total_floating_profit(MAGIC)
+            if total_profit >= effective_target_usd:
+                close_all_positions(MAGIC)
+                break
+            if total_loss <= -max_loss_per_cycle_usd or equity_drop_exceeds(MAX_DRAWDOWN_PERCENT):
+                close_all_positions(MAGIC); halt_bot_if_needed(); break
+            if opposite_strong_signal():
+                close_all_positions(MAGIC); break
+
+            sleep(RECHECK_INTERVAL_SECONDS)
+
+        # after close: cooldown if configured
+        if higher_tf_trend_unchanged():
+            sleep(post_close_delay_if_any)
+            continue  # reopen a new batch
+        else:
+            sleep(wait_for_trend_flip_interval)
+    else:
+        sleep(short_poll_interval)
+```
+
+---
+
+## 8 — Logging, metrics & telemetry (must have)
+
+* Log each open/close with: timestamp, ticket, side, lot, price, SL, TP (if any), reason (pattern+RSI), cycle id.
+* Log cycle summary: cycle_id, started_balance, ended_balance, total_profit_usd, duration, max_drawdown_in_cycle.
+* Expose runtime metrics via simple HTTP endpoint or file: current trend, open_positions_count, floating_profit, equity, balance.
+* Send alerts (Telegram/email) for critical events: Drawdown halt, connection lost, emergency close, manual stop.
+
+---
+
+## 9 — Testing & staging requirements (must)
+
+1. **Backtest** logic on at least 6–12 months of M5 XAUUSD data to estimate win rate, average profit per cycle, worst drawdown.
+2. **Forward-test demo** for at least 3–8 weeks on broker demo account with same spread/commission profile.
+3. Unit tests for:
+
+   * Lot sizing and margin check logic (edge cases: $50 balance, micro-lot brokers).
+   * Profit target math (effective target covers spreads).
+   * Signal detection (candlestick + RSI) on static historical candles.
+4. Integration tests: open/close cycles in DRY_RUN mode simulating fills, slippage, and partial fills.
+5. Safety tests: simulate sudden gap moves and ensure `equity_stop` triggers.
+
+---
+
+## 10 — Recommended default parameter set (starter)
+
+These are intended as a starting point (tweak after backtest):
+
+```
+CONFIRM_TF = "H1"              # fallback to M30 if H1 missing
+ENTRY_TF = "M5"
+EMA_FAST_CONFIRM = 50
+EMA_SLOW_CONFIRM = 200
+EMA_FAST_ENTRY = 20
+EMA_SLOW_ENTRY = 50
+RSI_PERIOD = 14
+RSI_BUY_MAX = 55
+RSI_SELL_MIN = 45
+
+MIN_REQUESTED_TRADES = 5
+MAX_TRADES_CAP = 8
+LOT_STEP_SCALE = 1.4
+BASE_LOT_FACTOR = 0.0005       # base lot = balance * BASE_LOT_FACTOR, floored to MIN_LOT
+MAX_TOTAL_LOT = 5.0
+
+PROFIT_TARGET_PCT = 0.01       # 1%
+MIN_PROFIT_USD = 1.5           # do not target less than this (account cost floor)
+RECHECK_INTERVAL_SECONDS = 3
+
+SL_ATR_MULTIPLIER = 0.9
+TAKEPROFIT_ATR_FACTOR = 0.25   # used for reference only — actual close-all by USD target
+
+MAX_DRAWDOWN_PERCENT = 0.10    # 10% equity hard stop
+MAX_LOSS_PER_CYCLE_PCT = 0.02  # 2% of balance to auto-close cycle
+
+TRADING_SESSION_START = "07:00"  # local time
+TRADING_SESSION_END   = "18:00"
+SPREAD_MAX_POINTS = broker_dependent  # must be configured per broker
+```
+
+---
+
+## 11 — Practical warnings & honest constraints
+
+* **$50 starting balance is very small for gold**: most brokers’ minimum lot (0.01) requires margin that a $50 account cannot support for XAUUSD at normal leverage. Require micro-lot capability or a broker that offers fractional CFD sizes. Otherwise the bot must reduce `num_trades` to 1 and operate with tiny edge — not effective.
+* **Spreads & commissions matter**: on gold these can be $0.20–$1.00 per lot — very large relative to small profit targets. Always ensure `effective_target >= total_costs`.
+* **Slippage & gaps**: scalping is sensitive. Use `DRY_RUN` extensively and low-latency VPS near broker servers.
+* **Regulatory / broker rules**: some brokers restrict scalping or impose margin/hard stops; account for these.
+
+---
+
+## 12 — Deliverables for your developers
+
+1. `specification.md` (this document) + `config.example.json`
+2. `gold_scalper_bot.py` skeleton with:
+
+   * Connect/disconnect to MT5,
+   * Signal detectors (candlestick library + RSI + EMA),
+   * Lot sizing & margin checks,
+   * Batch open/close logic with `MAGIC` tag,
+   * Safety checks and logging,
+   * `DRY_RUN` mode.
+3. Unit tests + example backtest notebook (Python) that runs strategy over historical M5 data and prints summary stats.
+4. Deployment README (VPS, Python env, MT5 config).
+5. Demo run logs & recommendations after 2–4 weeks demo.
+

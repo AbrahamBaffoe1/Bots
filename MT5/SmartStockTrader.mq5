@@ -28,7 +28,7 @@ input bool API_EnableSync = false;                       // Enable backend sync 
 //--------------------------------------------------------------------
 // TRADING CONFIGURATION
 //--------------------------------------------------------------------
-input string  TradingSymbols        = "EURUSD,GBPUSD,USDJPY"; // Symbols to trade (change to stocks for live: AAPL,MSFT,GOOGL,AMZN,TSLA,NVDA,META,NFLX)
+input string  TradingSymbols        = "EURUSD,GBPUSD,USDJPY,EURJPY"; // Symbols to trade (stocks need live account: AAPL,MSFT,etc)
 input int     MagicNumber           = 555888;
 input bool    EnableTrading         = true;
 input double  RiskPercentPerTrade   = 1.0;
@@ -86,9 +86,9 @@ input int     SR_Lookback           = 100;    // Bars to scan for S/R levels
 input double  SR_TouchThreshold     = 0.0015; // 0.15% proximity to consider a touch
 input int     SR_MinTouches         = 2;      // Minimum touches to confirm level
 
-// Time & Session Settings
-input int     TradingStartHour      = 9;     // Market open hour
-input int     TradingEndHour        = 16;    // Market close hour
+// Time & Session Settings (24/7 for Forex, 9-16 for Stocks)
+input int     TradingStartHour      = 0;     // Market open hour (0 = midnight, 24/7 trading)
+input int     TradingEndHour        = 24;    // Market close hour (24 = always open)
 input bool    CloseBeforeMarketClose = true;
 input int     CloseBeforeMinutes    = 30;
 
@@ -96,7 +96,7 @@ input int     CloseBeforeMinutes    = 30;
 input bool    ShowDashboard         = true;
 input bool    SendNotifications     = false;
 input bool    VerboseLogging        = true;
-input bool    DebugMode             = false;
+input bool    DebugMode             = true;  // CHANGED: true by default to see what's happening
 
 //--------------------------------------------------------------------
 // GLOBAL VARIABLES
@@ -311,7 +311,12 @@ bool CheckVolumeConfirmation(string symbol) {
 bool CheckSpreadFilter(string symbol) {
    long spread = SymbolInfoInteger(symbol, SYMBOL_SPREAD);
    double point = SymbolInfoDouble(symbol, SYMBOL_POINT);
-   double spreadPips = spread * point / point / 10.0;
+   // FIXED: Spread is already in points, just divide by 10 for pips
+   double spreadPips = (double)spread / 10.0;
+
+   if(DebugMode && spreadPips > MaxSpreadPips) {
+      Print(symbol, " spread too wide: ", DoubleToString(spreadPips, 1), " pips (max: ", MaxSpreadPips, ")");
+   }
 
    return (spreadPips <= MaxSpreadPips);
 }
@@ -583,15 +588,17 @@ void ScanSymbolForSignals(string symbol) {
    ArraySetAsSeries(bandsLower, true);
    ArraySetAsSeries(bandsMiddle, true);
 
+   // FIXED: ADX uses MAIN_LINE (buffer 0), not PLUSDI_LINE
    if(CopyBuffer(g_Indicators[idx].h_FastMA, 0, 0, 3, fastMA) <= 0 ||
       CopyBuffer(g_Indicators[idx].h_SlowMA, 0, 0, 3, slowMA) <= 0 ||
       CopyBuffer(g_Indicators[idx].h_MA200, 0, 0, 3, ma200) <= 0 ||
       CopyBuffer(g_Indicators[idx].h_RSI, 0, 0, 3, rsi) <= 0 ||
       CopyBuffer(g_Indicators[idx].h_ATR, 0, 0, 3, atr) <= 0 ||
-      CopyBuffer(g_Indicators[idx].h_ADX, 0, 0, 3, adx) <= 0 ||
+      CopyBuffer(g_Indicators[idx].h_ADX, MAIN_LINE, 0, 3, adx) <= 0 ||
       CopyBuffer(g_Indicators[idx].h_Bands, 1, 0, 3, bandsUpper) <= 0 ||
       CopyBuffer(g_Indicators[idx].h_Bands, 2, 0, 3, bandsLower) <= 0 ||
       CopyBuffer(g_Indicators[idx].h_Bands, 0, 0, 3, bandsMiddle) <= 0) {
+      if(DebugMode) Print("ERROR: Failed to copy buffers for ", symbol);
       return;
    }
 
@@ -619,88 +626,101 @@ void ScanSymbolForSignals(string symbol) {
    double confidence = 0.0;
    string strategyName = "";
 
-   // STRATEGY 1: Momentum (IMPROVED with multi-confirmation)
+   // STRATEGY 1: Momentum (FIXED - less strict, will actually trade)
    if(UseMomentumStrategy && isTrending) {
-      // BUY: MA cross + RSI + Volume + Price action
-      if(fastMA[1] > slowMA[1] && fastMA[2] <= slowMA[2] &&  // Fresh crossover
-         rsi[1] > 50 && rsi[1] < RSI_Overbought &&          // RSI in bullish zone but not overbought
+      // BUY: MA aligned + RSI + Price action (REMOVED fresh crossover requirement)
+      if(fastMA[1] > slowMA[1] &&                           // Fast above slow (trending up)
+         rsi[1] > 50 && rsi[1] < RSI_Overbought &&          // RSI in bullish zone
          close[1] > close[2] &&                             // Bullish candle
-         volumeOK &&                                        // Volume confirmation
          srLevel != -1) {                                   // NOT at resistance
          signal = 1;
          confidence = 0.80;
          strategyName = "Momentum Buy";
          if(srLevel == 1) confidence += 0.10;  // Bonus if at support
+         if(volumeOK) confidence += 0.05;      // Bonus for volume (not required)
       }
-      // SELL: MA cross + RSI + Volume + Price action
-      else if(fastMA[1] < slowMA[1] && fastMA[2] >= slowMA[2] &&  // Fresh crossover
-         rsi[1] < 50 && rsi[1] > RSI_Oversold &&                  // RSI in bearish zone but not oversold
-         close[1] < close[2] &&                                   // Bearish candle
-         volumeOK &&                                              // Volume confirmation
-         srLevel != 1) {                                          // NOT at support
+      // SELL: MA aligned + RSI + Price action (REMOVED fresh crossover requirement)
+      else if(fastMA[1] < slowMA[1] &&                      // Fast below slow (trending down)
+         rsi[1] < 50 && rsi[1] > RSI_Oversold &&            // RSI in bearish zone
+         close[1] < close[2] &&                             // Bearish candle
+         srLevel != 1) {                                    // NOT at support
          signal = -1;
          confidence = 0.80;
          strategyName = "Momentum Sell";
          if(srLevel == -1) confidence += 0.10;  // Bonus if at resistance
+         if(volumeOK) confidence += 0.05;       // Bonus for volume (not required)
       }
    }
 
-   // STRATEGY 2: Mean Reversion (IMPROVED - wait for bounce confirmation)
+   // STRATEGY 2: Mean Reversion (FIXED - removed S/R requirement, made flexible)
    if(signal == 0 && UseMeanReversion && !isTrending) {
-      // BUY: At lower band + RSI oversold + BOUNCE STARTED + at support
-      if(close[2] < bandsLower[2] &&              // Was below band
-         close[1] > bandsLower[1] &&              // Now bouncing back
-         rsi[1] < RSI_Oversold &&                 // RSI oversold
-         close[1] > close[2] &&                   // Bullish bounce candle
-         volumeOK &&                              // Volume confirmation
-         srLevel == 1) {                          // AT SUPPORT (critical!)
+      // BUY: Near lower band + RSI oversold + bounce (S/R is bonus, not required)
+      if(close[1] <= bandsLower[1] * 1.002 &&     // At or near lower band (0.2% tolerance)
+         rsi[1] < RSI_Oversold + 5 &&             // RSI oversold zone (slightly relaxed)
+         close[1] > close[2]) {                   // Bullish candle (bounce starting)
          signal = 1;
          confidence = 0.75;
          strategyName = "Mean Reversion Buy";
+         if(srLevel == 1) confidence += 0.10;     // Bonus if at support
+         if(volumeOK) confidence += 0.05;         // Bonus for volume
       }
-      // SELL: At upper band + RSI overbought + REJECTION STARTED + at resistance
-      else if(close[2] > bandsUpper[2] &&         // Was above band
-         close[1] < bandsUpper[1] &&              // Now rejecting
-         rsi[1] > RSI_Overbought &&               // RSI overbought
-         close[1] < close[2] &&                   // Bearish rejection candle
-         volumeOK &&                              // Volume confirmation
-         srLevel == -1) {                         // AT RESISTANCE (critical!)
+      // SELL: Near upper band + RSI overbought + rejection (S/R is bonus, not required)
+      else if(close[1] >= bandsUpper[1] * 0.998 &&  // At or near upper band (0.2% tolerance)
+         rsi[1] > RSI_Overbought - 5 &&             // RSI overbought zone (slightly relaxed)
+         close[1] < close[2]) {                     // Bearish candle (rejection starting)
          signal = -1;
          confidence = 0.75;
          strategyName = "Mean Reversion Sell";
+         if(srLevel == -1) confidence += 0.10;      // Bonus if at resistance
+         if(volumeOK) confidence += 0.05;           // Bonus for volume
       }
    }
 
-   // STRATEGY 3: Trend Following (IMPROVED with confirmation)
+   // STRATEGY 3: Trend Following (FIXED - simplified, will actually trade)
    if(signal == 0 && UseTrendFollowing && isTrending) {
-      // BUY: Strong uptrend + pullback to MA + bounce
+      // BUY: Strong uptrend + bullish conditions
       if(close[1] > ma200[1] &&                   // Above long-term MA
          fastMA[1] > slowMA[1] &&                 // Fast above slow
          rsi[1] > 50 && rsi[1] < RSI_Overbought && // RSI bullish but not extreme
-         close[1] > fastMA[1] &&                  // Price above fast MA
-         close[1] > close[2] &&                   // Bullish candle
-         volumeOK) {                              // Volume confirmation
+         close[1] > close[2]) {                   // Bullish candle
          signal = 1;
-         confidence = 0.85;
+         confidence = 0.80;
          strategyName = "Trend Following Buy";
          if(srLevel == 1) confidence += 0.05;     // Bonus at support
+         if(volumeOK) confidence += 0.05;         // Bonus for volume
+         if(close[1] > fastMA[1]) confidence += 0.05;  // Bonus if above fast MA
       }
-      // SELL: Strong downtrend + pullback to MA + rejection
+      // SELL: Strong downtrend + bearish conditions
       else if(close[1] < ma200[1] &&              // Below long-term MA
          fastMA[1] < slowMA[1] &&                 // Fast below slow
          rsi[1] < 50 && rsi[1] > RSI_Oversold &&  // RSI bearish but not extreme
-         close[1] < fastMA[1] &&                  // Price below fast MA
-         close[1] < close[2] &&                   // Bearish candle
-         volumeOK) {                              // Volume confirmation
+         close[1] < close[2]) {                   // Bearish candle
          signal = -1;
-         confidence = 0.85;
+         confidence = 0.80;
          strategyName = "Trend Following Sell";
          if(srLevel == -1) confidence += 0.05;    // Bonus at resistance
+         if(volumeOK) confidence += 0.05;         // Bonus for volume
+         if(close[1] < fastMA[1]) confidence += 0.05;  // Bonus if below fast MA
       }
    }
 
-   // Execute trade if signal is strong enough (INCREASED threshold)
-   if(signal != 0 && confidence >= 0.75) {  // Raised from 0.65 to 0.75
+   // DEBUG: Log why no signal
+   if(DebugMode && signal == 0) {
+      static datetime lastDebugTime = 0;
+      if(TimeCurrent() - lastDebugTime > 3600) {  // Once per hour
+         Print("DEBUG ", symbol, ": ADX=", DoubleToString(adx[1], 1),
+               " FastMA=", DoubleToString(fastMA[1], 5),
+               " SlowMA=", DoubleToString(slowMA[1], 5),
+               " RSI=", DoubleToString(rsi[1], 1),
+               " Close=", DoubleToString(close[1], 5),
+               " Trending=", isTrending ? "Yes" : "No");
+         lastDebugTime = TimeCurrent();
+      }
+   }
+
+   // Execute trade if signal is strong enough
+   if(signal != 0 && confidence >= 0.75) {
+      if(DebugMode) Print("SIGNAL FOUND: ", symbol, " ", strategyName, " Confidence: ", DoubleToString(confidence*100, 1), "%");
       ExecuteTrade(symbol, signal == 1, strategyName, confidence);
    }
 }

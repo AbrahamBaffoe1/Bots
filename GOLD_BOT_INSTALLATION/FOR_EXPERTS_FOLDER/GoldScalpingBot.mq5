@@ -12,7 +12,7 @@
 
 //--- Include libraries
 #include <Trade\Trade.mqh>
-#include "SST_ScalpingStrategy.mqh"  // Local include (same folder as EA)
+#include <SST_ScalpingStrategy.mqh>  // From Include folder
 
 //+------------------------------------------------------------------+
 //| Input Parameters                                                 |

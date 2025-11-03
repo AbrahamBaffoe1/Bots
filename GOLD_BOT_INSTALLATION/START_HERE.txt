@@ -1,0 +1,149 @@
+================================================================================
+                    🚀 START HERE - GOLD SCALPING BOT
+================================================================================
+
+Welcome! You have everything you need to install the Gold Scalping Bot.
+
+
+📁 WHAT'S IN THIS FOLDER:
+================================================================================
+
+✓ FOR_EXPERTS_FOLDER/
+  └─ GoldScalpingBot.mq5           ← Main EA file
+
+✓ FOR_INCLUDE_FOLDER/
+  └─ SST_ScalpingStrategy.mqh      ← Strategy library file
+
+✓ START_HERE.txt                   ← This file
+✓ README_INSTALLATION.txt          ← Detailed instructions
+✓ VISUAL_GUIDE.txt                 ← Visual diagrams
+✓ COPY_COMMANDS.sh                 ← Automatic installer script
+
+
+================================================================================
+⚡ QUICK INSTALL (3 STEPS):
+================================================================================
+
+STEP 1: Find MT5 Folders
+-------------------------
+1. Open MetaTrader 5
+2. Go to: File → Open Data Folder
+3. Open the "MQL5" folder you'll see
+
+   You'll now see these folders:
+   • Experts/    ← You need this
+   • Include/    ← And this
+   • Scripts/
+   • Indicators/
+
+
+STEP 2: Copy Files to MT5
+--------------------------
+
+FILE #1:
+   FROM: FOR_EXPERTS_FOLDER/GoldScalpingBot.mq5
+   TO:   [MQL5]/Experts/GoldScalpingBot.mq5
+
+   👉 Drag GoldScalpingBot.mq5 into the Experts folder
+
+
+FILE #2:
+   FROM: FOR_INCLUDE_FOLDER/SST_ScalpingStrategy.mqh
+   TO:   [MQL5]/Include/SST_ScalpingStrategy.mqh
+
+   👉 Drag SST_ScalpingStrategy.mqh into the Include folder
+
+
+STEP 3: Compile
+---------------
+1. In MT5, press F4 (opens MetaEditor)
+2. Navigator panel → Experts → double-click GoldScalpingBot.mq5
+3. Press F7 to compile
+
+✅ Should see: "0 error(s), 0 warning(s)"
+
+
+DONE! 🎉
+
+
+================================================================================
+🤖 AUTOMATIC INSTALLATION (Alternative Method):
+================================================================================
+
+If you prefer automatic installation:
+
+1. Open Terminal
+2. Run these commands:
+
+   cd ~/Desktop/EABot/GOLD_BOT_INSTALLATION
+   ./COPY_COMMANDS.sh
+
+3. Follow the prompts
+4. Script will copy files automatically
+
+
+================================================================================
+🚨 IF YOU CAN'T PASTE FILES:
+================================================================================
+
+Some MT5 installations (especially Wine-based) prevent pasting files.
+
+USE THE AUTOMATIC SCRIPT:
+   cd ~/Desktop/EABot/GOLD_BOT_INSTALLATION
+   ./COPY_COMMANDS.sh
+
+Or see README_INSTALLATION.txt for 4 alternative methods.
+
+
+================================================================================
+📚 NEED MORE HELP?
+================================================================================
+
+Read these guides in order:
+
+1. README_INSTALLATION.txt      ← Step-by-step with troubleshooting
+2. VISUAL_GUIDE.txt             ← Visual diagrams of folder structure
+3. (After install) ../MT5/QUICK_START_GUIDE.md  ← How to use the bot
+
+
+================================================================================
+✅ VERIFICATION:
+================================================================================
+
+After installation, you should have:
+
+MT5 Data/MQL5/
+├── Experts/
+│   └── GoldScalpingBot.mq5        ✓
+└── Include/
+    └── SST_ScalpingStrategy.mqh   ✓
+
+Compile result:
+   ✓ 0 error(s), 0 warning(s)
+   ✓ GoldScalpingBot.ex5 created
+
+
+================================================================================
+🎯 REMEMBER:
+================================================================================
+
+• GoldScalpingBot.mq5 → Goes in EXPERTS folder
+• SST_ScalpingStrategy.mqh → Goes in INCLUDE folder
+• They go in DIFFERENT folders!
+
+
+================================================================================
+🚀 AFTER SUCCESSFUL INSTALLATION:
+================================================================================
+
+Next steps:
+1. Attach EA to XAUUSD M5 chart
+2. Enable AutoTrading (Ctrl+E - button turns green)
+3. Demo test for 2-4 weeks
+4. Read QUICK_START_GUIDE.md for usage instructions
+
+
+Questions? See README_INSTALLATION.txt for troubleshooting!
+
+Good luck! 🎉
+================================================================================
